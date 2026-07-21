@@ -1863,17 +1863,17 @@ Thứ 5, Tiết 7-9 (Thực hành), Phòng PM.302`}</pre>
               </span>
             )}
             {/* Cấu hình Groq API Key (Tùy chọn di chuyển) */}
-            <div className="flex items-center gap-1.5 bg-slate-950/80 border border-slate-850 px-2.5 py-1 rounded-lg">
-              <span className="text-[10px] text-slate-500 font-semibold" title="Groq API Key dùng để trò chuyện với Leo">🔑 GROQ KEY:</span>
+            <div className="flex items-center gap-1.5 bg-slate-950/80 border border-slate-850 px-2.5 py-1 rounded-lg" title="Mặc định hệ thống sử dụng API Key của quản trị viên (được ẩn để bảo mật). Bạn có thể nhập API Key riêng của bạn vào đây nếu muốn.">
+              <span className="text-[10px] text-slate-500 font-semibold">🔑 GROQ KEY:</span>
               <input
                 type="password"
-                placeholder="gsk_..."
+                placeholder="Key hệ thống đang hoạt động 🔒"
                 value={groqKeyInput}
                 onChange={(e) => {
                   setGroqKeyInput(e.target.value);
                   localStorage.setItem('cardtkb_groq_api_key', e.target.value);
                 }}
-                className="bg-transparent text-[10px] text-slate-300 focus:outline-none w-28 font-mono border-b border-transparent focus:border-cyan-500/50"
+                className="bg-transparent text-[10px] text-slate-350 focus:outline-none w-44 font-mono border-b border-transparent focus:border-cyan-500/50"
               />
               {groqKeyInput && (
                 <button
@@ -1882,7 +1882,7 @@ Thứ 5, Tiết 7-9 (Thực hành), Phòng PM.302`}</pre>
                     localStorage.removeItem('cardtkb_groq_api_key');
                   }}
                   className="text-[9px] text-red-400 hover:text-red-300 font-bold ml-1 cursor-pointer"
-                  title="Xóa API Key"
+                  title="Xóa API Key cá nhân"
                 >
                   XÓA
                 </button>
