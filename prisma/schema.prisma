@@ -1,0 +1,132 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id               String      @id @default(cuid())
+  email            String      @unique
+  password         String?     // Mật khẩu mã hoá hash
+  username         String?     // Tên người dùng hiển thị
+  faceDescriptor   String?     // Chuỗi JSON lưu mảng 128 số thực đặc trưng khuôn mặt
+  university       String?
+  createdAt        DateTime    @default(now())
+  semesters        Semester[]
+  sentMessages     Message[]   @relation("SentMessages")
+  receivedMessages Message[]   @relation("ReceivedMessages")
+
+  // Quan hệ bạn bè
+  sentFriendships     Friendship[] @relation("FriendshipSender")
+  receivedFriendships Friendship[] @relation("FriendshipReceiver")
+}
+
+model Friendship {
+  id         String           @id @default(cuid())
+  senderId   String
+  receiverId String
+  status     FriendshipStatus @default(PENDING) // PENDING, ACCEPTED, DECLINED
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  sender     User             @relation("FriendshipSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver   User             @relation("FriendshipReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([senderId, receiverId])
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+model Semester {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String   // "HK1 2026-2027"
+  courseCards CourseCard[]
+  versions    ScheduleVersion[]
+}
+
+model CourseCard {
+  id           String    @id @default(cuid())
+  semesterId   String
+  semester     Semester  @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  subjectCode  String
+  subjectName  String
+  classCode    String    // mã nhóm/lớp
+  teacher      String?
+  slotsLeft    Int?
+  colorRamp    String    // gán màu theo môn cho UI (e.g., "blue", "emerald", "amber")
+  sessions     Session[]
+  sourceType   String    // "ocr" | "import" | "api"
+  placedCards  PlacedCard[]
+}
+
+model Session {
+  id            String     @id @default(cuid())
+  courseCardId  String
+  courseCard    CourseCard @relation(fields: [courseCardId], references: [id], onDelete: Cascade)
+  dayOfWeek     Int        // 2..8 (T2..CN)
+  startPeriod   Int        // Tiết bắt đầu (1..12)
+  endPeriod     Int        // Tiết kết thúc (1..12)
+  room          String?
+  weekParity    String?    // "all" | "odd" | "even"
+  sessionType   String     // "theory" | "lab"
+}
+
+model ScheduleVersion {
+  id           String   @id @default(cuid())
+  semesterId   String
+  semester     Semester @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  label        String   // "Phương án A"
+  placedCards  PlacedCard[]
+  createdAt    DateTime @default(now())
+}
+
+model PlacedCard {
+  id                String          @id @default(cuid())
+  scheduleVersionId String
+  scheduleVersion   ScheduleVersion @relation(fields: [scheduleVersionId], references: [id], onDelete: Cascade)
+  courseCardId      String
+  courseCard        CourseCard      @relation(fields: [courseCardId], references: [id], onDelete: Cascade)
+  locked            Boolean         @default(false)
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  senderId   String
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId String
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  content    String   @default("")    // Nội dung text (có thể rỗng nếu chỉ gửi file)
+  fileUrl    String?                  // URL công khai của file/ảnh đã upload
+  fileType   String?                  // "image" | "document" | "other"
+  fileName   String?                  // Tên file gốc để hiển thị
+  createdAt  DateTime @default(now())
+}
+
+model CoopLobby {
+  id        String        @id
+  hostId    String
+  createdAt DateTime      @default(now())
+  members   LobbyMember[]
+}
+
+model LobbyMember {
+  id           String     @id @default(cuid())
+  lobbyId      String
+  lobby        CoopLobby  @relation(fields: [lobbyId], references: [id], onDelete: Cascade)
+  userId       String
+  username     String
+  color        String     // màu sắc phi thuyền đại diện
+  updatedAt    DateTime   @updatedAt
+  scheduleJson String     @default("[]") // Lưu chuỗi JSON các môn học đã xếp lịch
+}
+
