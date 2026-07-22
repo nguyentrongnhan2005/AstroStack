@@ -30,6 +30,17 @@ const EMISSIVE_MAP: { [key: string]: string } = {
   gray: '#374151',
 };
 
+const NEON_COLOR_MAP: { [key: string]: { main: string; emissive: string; edge: string; accent: string } } = {
+  blue: { main: '#1d4ed8', emissive: '#2563eb', edge: '#60a5fa', accent: '#bfdbfe' },
+  emerald: { main: '#047857', emissive: '#059669', edge: '#34d399', accent: '#a7f3d0' },
+  amber: { main: '#b45309', emissive: '#d97706', edge: '#fbbf24', accent: '#fde68a' },
+  rose: { main: '#be123c', emissive: '#e11d48', edge: '#fb7185', accent: '#fecdd3' },
+  violet: { main: '#6d28d9', emissive: '#7c3aed', edge: '#c084fc', accent: '#e9d5ff' },
+  indigo: { main: '#4338ca', emissive: '#4f46e5', edge: '#818cf8', accent: '#c7d2fe' },
+  cyan: { main: '#0e7490', emissive: '#0891b2', edge: '#22d3ee', accent: '#a5f3fc' },
+  gray: { main: '#334155', emissive: '#475569', edge: '#94a3b8', accent: '#e2e8f0' },
+};
+
 const BG_COLOR_MAP: { [key: string]: { bg: string; border: string; text: string; glow: string; badge: string } } = {
   blue: {
     bg: 'bg-gradient-to-br from-blue-900/95 via-blue-950 to-slate-950',
@@ -1414,8 +1425,10 @@ const Card3D: React.FC<Card3DProps> = ({
     meshRef.current.rotation.z = THREE.MathUtils.lerp(meshRef.current.rotation.z, targetRotZ, 0.1);
   });
 
-  const cardColor = hasConflict ? '#ef4444' : COLOR_MAP[card.colorRamp] || COLOR_MAP.blue;
-  const emissiveColor = hasConflict ? '#7f1d1d' : EMISSIVE_MAP[card.colorRamp] || EMISSIVE_MAP.blue;
+  const neon = NEON_COLOR_MAP[card.colorRamp] || NEON_COLOR_MAP.blue;
+  const cardColor = hasConflict ? '#ef4444' : neon.main;
+  const emissiveColor = hasConflict ? '#991b1b' : neon.emissive;
+  const edgeColor = hasConflict ? '#ff4d4d' : hovered ? '#ffffff' : neon.edge;
 
   return (
     <group
@@ -1436,66 +1449,117 @@ const Card3D: React.FC<Card3DProps> = ({
         onSelect();
       }}
     >
+      {/* 1. KHỐI NỀN 3D DÀY DẶN CHÍNH (MAIN 3D SOLID CARD BODY WITH NEON GLOW) */}
       <mesh castShadow receiveShadow>
-        <boxGeometry args={[GRID_WIDTH - 0.1, 0.06, targetPos.length]} />
+        <boxGeometry args={[GRID_WIDTH - 0.08, 0.12, targetPos.length]} />
         <meshPhysicalMaterial
           color={cardColor}
-          emissive={hovered ? emissiveColor : '#000000'}
-          emissiveIntensity={0.8}
-          roughness={0.2}
-          metalness={0.5}
-          transmission={0.4}
-          thickness={0.1}
+          emissive={emissiveColor}
+          emissiveIntensity={hasConflict ? 1.2 : hovered ? 0.9 : 0.45}
+          roughness={0.15}
+          metalness={0.25}
+          clearcoat={1.0}
+          clearcoatRoughness={0.08}
+          transmission={0.12}
           transparent
-          opacity={isDragging ? 0.6 : 0.95}
+          opacity={isDragging ? 0.6 : 0.98}
         />
         <Edges
           threshold={15}
-          color={hasConflict ? '#f87171' : hovered ? '#ffffff' : cardColor}
-          lineWidth={hovered || hasConflict ? 2.5 : 1}
+          color={edgeColor}
+          lineWidth={hovered || hasConflict ? 3.5 : 2.2}
         />
       </mesh>
 
-      <group position={[0, 0.035, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      {/* 2. THANH ACCENT NEON NỔI TRÊN ĐẦU THẺ 3D */}
+      <mesh position={[0, 0.062, targetPos.length / 2 - 0.08]}>
+        <boxGeometry args={[GRID_WIDTH - 0.12, 0.01, 0.1]} />
+        <meshStandardMaterial
+          color={hasConflict ? '#ff4d4d' : neon.edge}
+          emissive={hasConflict ? '#ff4d4d' : neon.edge}
+          emissiveIntensity={1.0}
+        />
+      </mesh>
+
+      {/* 3. LỚP KÍNH BÓNG BẨY MẶT TRÊN 3D (TOP GLASS COVER) */}
+      <mesh position={[0, 0.061, 0]}>
+        <boxGeometry args={[GRID_WIDTH - 0.1, 0.005, targetPos.length - 0.04]} />
+        <meshPhysicalMaterial
+          color="#ffffff"
+          roughness={0.02}
+          metalness={0.1}
+          transmission={0.8}
+          transparent
+          opacity={0.35}
+        />
+      </mesh>
+
+      {/* 4. CHỮ 3D VÀ HUY HIỆU NÉT CĂNG SẮC NÉT */}
+      <group position={[0, 0.066, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        {/* Mã Môn Học (Subject Code) */}
         <Text
-          position={[0, targetPos.length / 2 - 0.12, 0]}
+          position={[-(GRID_WIDTH / 2 - 0.12), targetPos.length / 2 - 0.1, 0]}
           fontSize={0.075}
           color="#ffffff"
-          maxWidth={GRID_WIDTH - 0.2}
-          textAlign="center"
-          anchorX="center"
+          outlineWidth={0.008}
+          outlineColor="#000000"
+          anchorX="left"
           anchorY="top"
         >
-          {card.subjectName.length > 20 ? `${card.subjectName.substring(0, 18)}...` : card.subjectName}
+          {card.subjectCode}
         </Text>
 
+        {/* Loại hình LT / TH Pill Badge */}
         <Text
-          position={[0, -targetPos.length / 2 + 0.12, 0]}
+          position={[GRID_WIDTH / 2 - 0.12, targetPos.length / 2 - 0.1, 0]}
           fontSize={0.065}
-          color="#cbd5e1"
-          anchorX="center"
-          anchorY="bottom"
-        >
-          {`${card.classCode} | ${session.room || 'TBA'}`}
-        </Text>
-
-        <Text
-          position={[GRID_WIDTH / 2 - 0.15, targetPos.length / 2 - 0.08, 0]}
-          fontSize={0.045}
-          color={session.sessionType === 'lab' ? '#fda4af' : '#93c5fd'}
+          color={session.sessionType === 'lab' ? '#ff75c3' : '#38bdf8'}
+          outlineWidth={0.008}
+          outlineColor="#000000"
           anchorX="right"
           anchorY="top"
         >
           {session.sessionType === 'lab' ? 'TH' : 'LT'}
         </Text>
 
+        {/* Tên Môn Học Rõ Ràng Nổi Bật */}
+        <Text
+          position={[0, targetPos.length / 2 - 0.22, 0]}
+          fontSize={0.09}
+          color="#ffffff"
+          outlineWidth={0.01}
+          outlineColor="#000000"
+          maxWidth={GRID_WIDTH - 0.22}
+          textAlign="center"
+          anchorX="center"
+          anchorY="top"
+        >
+          {card.subjectName.length > 28 ? `${card.subjectName.substring(0, 26)}...` : card.subjectName}
+        </Text>
+
+        {/* Phòng Học & Mã Lớp Học Phần */}
+        <Text
+          position={[0, -targetPos.length / 2 + 0.1, 0]}
+          fontSize={0.07}
+          color={neon.accent}
+          outlineWidth={0.007}
+          outlineColor="#000000"
+          anchorX="center"
+          anchorY="bottom"
+        >
+          {`${card.classCode} | 🏢 ${session.room || 'TBA'}`}
+        </Text>
+
+        {/* Khóa thẻ 🔒 */}
         {isLocked && (
           <Text
-            position={[-(GRID_WIDTH / 2 - 0.12), targetPos.length / 2 - 0.08, 0]}
-            fontSize={0.06}
-            color="#e2e8f0"
-            anchorX="left"
-            anchorY="top"
+            position={[0, 0, 0]}
+            fontSize={0.12}
+            color="#fbbf24"
+            outlineWidth={0.01}
+            outlineColor="#000000"
+            anchorX="center"
+            anchorY="middle"
           >
             🔒
           </Text>
