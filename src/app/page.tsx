@@ -701,9 +701,12 @@ export default function Home() {
 
     const token = localStorage.getItem('cardtkb_token');
     const storedUserId = localStorage.getItem('cardtkb_user_id');
+    const sessionAuth = sessionStorage.getItem('cardtkb_logged_in_this_session');
 
-    if (!token || !storedUserId) {
-      router.push('/login');
+    // Bắt buộc bất kỳ ai truy cập vào web (kể cả đã đăng nhập từ trước hay chưa) đều phải nhảy vào trang /login đầu tiên
+    if (!token || !storedUserId || !sessionAuth) {
+      const currentQuery = window.location.search || '';
+      router.push('/login' + currentQuery);
       return;
     }
 
@@ -763,6 +766,7 @@ export default function Home() {
       localStorage.removeItem('cardtkb_email');
       localStorage.removeItem('cardtkb_semester_id');
       localStorage.removeItem('cardtkb_has_been_used');
+      sessionStorage.removeItem('cardtkb_logged_in_this_session');
       router.push('/login');
     };
 

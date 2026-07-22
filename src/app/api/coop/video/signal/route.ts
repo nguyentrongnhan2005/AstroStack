@@ -10,7 +10,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Thiếu thông tin tín hiệu WebRTC' }, { status: 400 });
     }
 
-    const signal = await prisma.coopSignal.create({
+    const signal = await (prisma as any).coopSignal.create({
       data: {
         lobbyId,
         senderId,
@@ -24,9 +24,9 @@ export async function POST(request: Request) {
 
     // Cleanup signal cũ hơn 2 phút trong DB Neon
     const deleteTime = new Date(Date.now() - 120000);
-    await prisma.coopSignal.deleteMany({
+    await (prisma as any).coopSignal.deleteMany({
       where: { createdAt: { lt: deleteTime } }
-    }).catch(e => console.error('Cleanup signal error:', e));
+    }).catch((e: any) => console.error('Cleanup signal error:', e));
 
     return NextResponse.json({ success: true, signalId: signal.id });
   } catch (error: any) {
@@ -48,7 +48,7 @@ export async function GET(request: Request) {
 
     const sinceDate = new Date(since);
 
-    const signals = await prisma.coopSignal.findMany({
+    const signals = await (prisma as any).coopSignal.findMany({
       where: {
         lobbyId,
         createdAt: { gt: sinceDate },
@@ -61,7 +61,7 @@ export async function GET(request: Request) {
       orderBy: { createdAt: 'asc' }
     });
 
-    const parsedSignals = signals.map((s) => ({
+    const parsedSignals = signals.map((s: any) => ({
       id: s.id,
       senderId: s.senderId,
       senderName: s.senderName,

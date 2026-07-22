@@ -400,17 +400,7 @@ export default function LoginClient() {
 
       const data = await res.json();
       if (res.ok) {
-        // Dọn sạch store cũ để tránh lẫn dữ liệu của user khác
-        useScheduleStore.getState().clearAllData();
-        localStorage.removeItem('cardtkb_has_been_used');
-        
-        localStorage.setItem('cardtkb_token', data.token);
-        localStorage.setItem('cardtkb_user_id', data.user.id);
-        localStorage.setItem('cardtkb_email', data.user.email);
-        localStorage.setItem('cardtkb_semester_id', data.user.semesterId);
-        
-        stopWebcam();
-        router.push('/');
+        handleLoginSuccess(data);
       } else {
         setErrorMessage(data.error || 'Nhận diện khuôn mặt thất bại.');
       }
@@ -420,6 +410,27 @@ export default function LoginClient() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLoginSuccess = (data: any) => {
+    useScheduleStore.getState().clearAllData();
+    localStorage.removeItem('cardtkb_has_been_used');
+    
+    localStorage.setItem('cardtkb_token', data.token);
+    localStorage.setItem('cardtkb_user_id', data.user.id);
+    localStorage.setItem('cardtkb_email', data.user.email);
+    localStorage.setItem('cardtkb_semester_id', data.user.semesterId);
+
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('cardtkb_logged_in_this_session', 'true');
+      const searchParams = new URLSearchParams(window.location.search);
+      const room = searchParams.get('room');
+      if (room) {
+        router.push(`/?room=${room}`);
+        return;
+      }
+    }
+    router.push('/');
   };
 
   // 5. Xử lý quét nhận diện để ĐĂNG KÝ bằng khuôn mặt (Bước 1: Quét mặt)
@@ -501,18 +512,9 @@ export default function LoginClient() {
 
       const data = await res.json();
       if (res.ok) {
-        // Dọn sạch store cũ khi tạo tài khoản mới
-        useScheduleStore.getState().clearAllData();
-        localStorage.removeItem('cardtkb_has_been_used');
-        
-        localStorage.setItem('cardtkb_token', data.token);
-        localStorage.setItem('cardtkb_user_id', data.user.id);
-        localStorage.setItem('cardtkb_email', data.user.email);
-        localStorage.setItem('cardtkb_semester_id', data.user.semesterId);
-        
         setRegisterFaceStep('scan');
         setTempFaceDescriptor(null);
-        router.push('/');
+        handleLoginSuccess(data);
       } else {
         setErrorMessage(data.error || 'Đăng ký khuôn mặt thất bại.');
       }
@@ -546,15 +548,7 @@ export default function LoginClient() {
 
       const data = await res.json();
       if (res.ok) {
-        // Dọn sạch store cũ khi đăng nhập thủ công
-        useScheduleStore.getState().clearAllData();
-        localStorage.removeItem('cardtkb_has_been_used');
-        
-        localStorage.setItem('cardtkb_token', data.token);
-        localStorage.setItem('cardtkb_user_id', data.user.id);
-        localStorage.setItem('cardtkb_email', data.user.email);
-        localStorage.setItem('cardtkb_semester_id', data.user.semesterId);
-        router.push('/');
+        handleLoginSuccess(data);
       } else {
         setErrorMessage(data.error || 'Thao tác thất bại.');
       }
