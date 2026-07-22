@@ -1471,31 +1471,8 @@ const Card3D: React.FC<Card3DProps> = ({
         />
       </mesh>
 
-      {/* 2. THANH ACCENT NEON NỔI TRÊN ĐẦU THẺ 3D */}
-      <mesh position={[0, 0.062, targetPos.length / 2 - 0.08]}>
-        <boxGeometry args={[GRID_WIDTH - 0.12, 0.01, 0.1]} />
-        <meshStandardMaterial
-          color={hasConflict ? '#ff4d4d' : neon.edge}
-          emissive={hasConflict ? '#ff4d4d' : neon.edge}
-          emissiveIntensity={1.0}
-        />
-      </mesh>
-
-      {/* 3. LỚP KÍNH BÓNG BẨY MẶT TRÊN 3D (TOP GLASS COVER) */}
-      <mesh position={[0, 0.061, 0]}>
-        <boxGeometry args={[GRID_WIDTH - 0.1, 0.005, targetPos.length - 0.04]} />
-        <meshPhysicalMaterial
-          color="#ffffff"
-          roughness={0.02}
-          metalness={0.1}
-          transmission={0.8}
-          transparent
-          opacity={0.35}
-        />
-      </mesh>
-
-      {/* 4. CHỮ 3D VÀ HUY HIỆU NÉT CĂNG SẮC NÉT */}
-      <group position={[0, 0.066, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      {/* 2. CHỮ 3D VÀ HUY HIỆU NÉT CĂNG SẮC NÉT */}
+      <group position={[0, 0.062, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         {/* Mã Môn Học (Subject Code) */}
         <Text
           position={[-(GRID_WIDTH / 2 - 0.12), targetPos.length / 2 - 0.1, 0]}
