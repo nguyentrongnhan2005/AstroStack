@@ -1879,25 +1879,33 @@ Thứ 5, Tiết 7-9 (Thực hành), Phòng PM.302`}</pre>
                       <div className="space-y-3">
                         {/* 1. KHUNG VIDEO CHÍNH KHỔNG LỒ (MAIN LARGE DISCORD VIDEO FRAME) */}
                         <div className="relative w-full aspect-video rounded-xl bg-slate-950 border border-cyan-500/50 overflow-hidden shadow-2xl flex items-center justify-center">
-                          {/* Remote Video Stream (Bạn bè) hoặc Screen Share */}
+                          {/* Remote Video Streams (Bạn bè) hoặc Screen Share */}
                           {Object.keys(remoteStreams).length > 0 ? (
                             (() => {
-                              const firstPeerId = Object.keys(remoteStreams)[0];
-                              const firstStream = remoteStreams[firstPeerId];
-                              const firstMember = lobbyMembers.find((m) => m.userId === firstPeerId);
+                              const peerIds = Object.keys(remoteStreams);
                               return (
-                                <div className="w-full h-full relative">
-                                  <video
-                                    ref={(node) => {
-                                      if (node && firstStream) node.srcObject = firstStream;
-                                    }}
-                                    autoPlay
-                                    playsInline
-                                    className="w-full h-full object-cover"
-                                  />
-                                  <span className="absolute top-2 left-2 text-[10px] font-black bg-slate-950/80 backdrop-blur-md text-cyan-300 px-2 py-0.5 rounded-lg border border-cyan-800">
-                                    🎙️ {firstMember?.username || 'Bạn học'}
-                                  </span>
+                                <div className={`w-full h-full grid ${peerIds.length > 1 ? 'grid-cols-2 gap-1 p-1' : 'grid-cols-1'} bg-black`}>
+                                  {peerIds.map((peerId) => {
+                                    const stream = remoteStreams[peerId];
+                                    const member = lobbyMembers.find((m) => m.userId === peerId);
+                                    return (
+                                      <div key={peerId} className="w-full h-full relative overflow-hidden bg-slate-900 rounded-lg">
+                                        <video
+                                          ref={(node) => {
+                                            if (node && stream && node.srcObject !== stream) {
+                                              node.srcObject = stream;
+                                            }
+                                          }}
+                                          autoPlay
+                                          playsInline
+                                          className="w-full h-full object-cover"
+                                        />
+                                        <span className="absolute top-2 left-2 text-[10px] font-black bg-slate-950/80 backdrop-blur-md text-cyan-300 px-2 py-0.5 rounded-lg border border-cyan-800">
+                                          🎙️ {member?.username || 'Bạn học'}
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               );
                             })()
@@ -1915,7 +1923,9 @@ Thứ 5, Tiết 7-9 (Thực hành), Phòng PM.302`}</pre>
                           <div className="absolute bottom-2 right-2 w-28 sm:w-36 aspect-video rounded-lg overflow-hidden bg-slate-900 border-2 border-cyan-400/80 shadow-2xl z-20">
                             <video
                               ref={(node) => {
-                                if (node && localStream) node.srcObject = localStream;
+                                if (node && localStream && node.srcObject !== localStream) {
+                                  node.srcObject = localStream;
+                                }
                               }}
                               autoPlay
                               playsInline
