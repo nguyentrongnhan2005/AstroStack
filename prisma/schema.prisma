@@ -130,3 +130,16 @@ model LobbyMember {
   scheduleJson String     @default("[]") // Lưu chuỗi JSON các môn học đã xếp lịch
 }
 
+model CoopSignal {
+  id         String   @id @default(cuid())
+  lobbyId    String
+  senderId   String
+  senderName String
+  targetId   String   @default("all")
+  type       String   // "offer" | "answer" | "candidate" | "leave"
+  sdp        String?  @db.Text
+  candidate  String?  @db.Text
+  createdAt  DateTime @default(now())
+}
+
+

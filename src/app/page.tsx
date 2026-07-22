@@ -710,6 +710,35 @@ export default function Home() {
     setUserId(storedUserId);
     setAuthChecking(false);
 
+    // Tự động kiểm tra URL xem có mã tham gia phòng Co-Op trực tiếp ?room=ROOM-XXXX
+    const searchParams = new URLSearchParams(window.location.search);
+    const roomParam = searchParams.get('room');
+    if (roomParam && token) {
+      const cleanRoomId = roomParam.trim().toUpperCase();
+      setJoinRoomId(cleanRoomId);
+      setActiveTab('coop');
+      setMobileTab('deck');
+      fetch('/api/coop/lobby/join', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ lobbyId: cleanRoomId })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setCoopState({
+            activeLobbyId: data.lobbyId,
+            coopActive: true,
+            lobbyMembers: data.members || []
+          });
+        }
+      })
+      .catch(err => console.error('Auto join room error:', err));
+    }
+
     // 2. Định nghĩa hàm tải dữ liệu từ DB
     const fetchScheduleFromDB = async (uid: string) => {
       try {
@@ -1757,7 +1786,7 @@ Thứ 5, Tiết 7-9 (Thực hành), Phòng PM.302`}</pre>
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">PHÒNG CO-OP HIỆN TẠI:</span>
-                      <div className="flex items-center gap-2 mt-1">
+                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                         <span className="text-base font-black text-cyan-400 font-mono tracking-wider">{activeLobbyId}</span>
                         <button
                           onClick={() => {
@@ -1768,7 +1797,19 @@ Thứ 5, Tiết 7-9 (Thực hành), Phòng PM.302`}</pre>
                           }}
                           className="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 text-[9px] font-bold border border-slate-750 transition-colors cursor-pointer"
                         >
-                          COPY
+                          COPY MÃ
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (activeLobbyId) {
+                              const directUrl = `${window.location.origin}/?room=${activeLobbyId}`;
+                              navigator.clipboard.writeText(directUrl);
+                              alert(`Đã sao chép link tham gia trực tiếp phòng ${activeLobbyId}!\n\nHãy gửi link này cho bạn bè mở trên điện thoại/PC để tự động kết nối ngay:\n${directUrl}`);
+                            }
+                          }}
+                          className="px-2 py-0.5 rounded bg-cyan-600 hover:bg-cyan-500 text-slate-950 text-[9px] font-black border border-cyan-400 transition-colors cursor-pointer shadow flex items-center gap-1"
+                        >
+                          <Share2 className="h-3 w-3" /> SAO CHÉP LINK PHÒNG
                         </button>
                       </div>
                     </div>
@@ -1810,33 +1851,64 @@ Thứ 5, Tiết 7-9 (Thực hành), Phòng PM.302`}</pre>
                     </div>
                   </div>
 
-                  {/* BẢNG KHOANG HỌC TẬP VIDEO CALL & SPACE POMODORO */}
-                  <div className="p-3 bg-[#0a0f1d] border border-cyan-500/30 rounded-xl space-y-3 shadow-[0_0_15px_rgba(6,182,212,0.1)]">
+                  {/* GIAO DIỆN CALL VIDEO & CHAT DISCORD-STYLE */}
+                  <div className="p-3 bg-[#0a0f1d] border border-cyan-500/40 rounded-2xl space-y-3 shadow-2xl">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-black text-cyan-400 tracking-wider flex items-center gap-1">
-                        🚀 SPACE STUDY CABIN
+                      <span className="text-xs font-black text-cyan-400 tracking-wider flex items-center gap-1.5">
+                        📹 KHOANG CALL VIDEO NHÓM (DISCORD STYLE)
                       </span>
                       {isCallActive && (
-                        <span className="text-[9px] font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-800 px-1.5 py-0.5 rounded animate-pulse">
-                          LIVE CALL
+                        <span className="text-[9px] font-bold text-emerald-400 bg-emerald-950/80 border border-emerald-700 px-2 py-0.5 rounded-full animate-pulse flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" /> LIVE CALL
                         </span>
                       )}
                     </div>
 
-                    {/* NÚT KHỞI ĐỘNG CALL VIDEO */}
                     {!isCallActive ? (
                       <button
                         onClick={startCall}
-                        className="w-full py-2 bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer border border-cyan-400/30"
+                        className="w-full py-3 bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white rounded-xl text-xs font-black tracking-wider flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(6,182,212,0.3)] transition-all cursor-pointer border border-cyan-400/40"
                       >
-                        <Video className="h-4 w-4" /> BẮT ĐẦU CALL VIDEO NHÓM
+                        <Video className="h-4 w-4" /> 🚀 BẮT ĐẦU CALL VIDEO DISCORD
                       </button>
                     ) : (
-                      <div className="space-y-2">
-                        {/* BẢNG VIDEO ĐIỀU KHIỂN CALL */}
-                        <div className="grid grid-cols-2 gap-1.5">
-                          {/* Local Stream */}
-                          <div className="relative rounded-lg overflow-hidden bg-slate-950 border border-cyan-800/80 aspect-video shadow">
+                      <div className="space-y-3">
+                        {/* 1. KHUNG VIDEO CHÍNH KHỔNG LỒ (MAIN LARGE DISCORD VIDEO FRAME) */}
+                        <div className="relative w-full aspect-video rounded-xl bg-slate-950 border border-cyan-500/50 overflow-hidden shadow-2xl flex items-center justify-center">
+                          {/* Remote Video Stream (Bạn bè) hoặc Screen Share */}
+                          {Object.keys(remoteStreams).length > 0 ? (
+                            (() => {
+                              const firstPeerId = Object.keys(remoteStreams)[0];
+                              const firstStream = remoteStreams[firstPeerId];
+                              const firstMember = lobbyMembers.find((m) => m.userId === firstPeerId);
+                              return (
+                                <div className="w-full h-full relative">
+                                  <video
+                                    ref={(node) => {
+                                      if (node && firstStream) node.srcObject = firstStream;
+                                    }}
+                                    autoPlay
+                                    playsInline
+                                    className="w-full h-full object-cover"
+                                  />
+                                  <span className="absolute top-2 left-2 text-[10px] font-black bg-slate-950/80 backdrop-blur-md text-cyan-300 px-2 py-0.5 rounded-lg border border-cyan-800">
+                                    🎙️ {firstMember?.username || 'Bạn học'}
+                                  </span>
+                                </div>
+                              );
+                            })()
+                          ) : (
+                            <div className="flex flex-col items-center justify-center text-slate-400 gap-2 p-4 text-center">
+                              <div className="w-10 h-10 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-cyan-400 text-lg animate-pulse">
+                                🛸
+                              </div>
+                              <p className="text-xs font-bold text-slate-300">Đang chờ bạn bè kết nối vào cuộc gọi...</p>
+                              <p className="text-[10px] text-slate-500">Bấm "SAO CHÉP LINK PHÒNG" bên trên gửi cho bạn bè mở trên điện thoại/PC để kết nối ngay.</p>
+                            </div>
+                          )}
+
+                          {/* 2. WEBCAM CÁ NHÂN NHỎ PIP (PICTURE-IN-PICTURE OVERLAY BOTTOM-RIGHT) */}
+                          <div className="absolute bottom-2 right-2 w-28 sm:w-36 aspect-video rounded-lg overflow-hidden bg-slate-900 border-2 border-cyan-400/80 shadow-2xl z-20">
                             <video
                               ref={(node) => {
                                 if (node && localStream) node.srcObject = localStream;
@@ -1847,83 +1919,123 @@ Thứ 5, Tiết 7-9 (Thực hành), Phòng PM.302`}</pre>
                               className={`w-full h-full object-cover ${isVideoOff ? 'hidden' : 'block'}`}
                             />
                             {isVideoOff && (
-                              <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900 text-slate-400 text-[10px]">
-                                <UserIcon className="h-5 w-5 text-cyan-400 mb-0.5" />
-                                <span>(Bạn - Tắt Cam)</span>
+                              <div className="w-full h-full flex flex-col items-center justify-center bg-slate-950 text-slate-400 text-[9px]">
+                                <UserIcon className="h-4 w-4 text-cyan-400 mb-0.5" />
+                                <span>(Tắt Cam)</span>
                               </div>
                             )}
-                            <span className="absolute bottom-1 left-1 text-[8px] font-bold bg-slate-950/80 text-cyan-300 px-1 rounded">
+                            <span className="absolute bottom-0.5 left-1 text-[7px] font-bold bg-slate-950/90 text-cyan-300 px-1 rounded select-none">
                               Bạn {isAudioMuted && '🔇'}
                             </span>
                           </div>
-
-                          {/* Remote Streams */}
-                          {Object.keys(remoteStreams).length === 0 ? (
-                            <div className="rounded-lg bg-slate-950 border border-slate-800 aspect-video flex flex-col items-center justify-center text-[9px] text-slate-500 p-1 text-center">
-                              <span>Đang chờ bạn bè kết nối call...</span>
-                            </div>
-                          ) : (
-                            Object.entries(remoteStreams).map(([peerId, stream]) => {
-                              const peerMember = lobbyMembers.find((m) => m.userId === peerId);
-                              return (
-                                <div key={peerId} className="relative rounded-lg overflow-hidden bg-slate-950 border border-cyan-500/50 aspect-video shadow">
-                                  <video
-                                    ref={(node) => {
-                                      if (node && stream) node.srcObject = stream;
-                                    }}
-                                    autoPlay
-                                    playsInline
-                                    className="w-full h-full object-cover"
-                                  />
-                                  <span className="absolute bottom-1 left-1 text-[8px] font-bold bg-slate-950/80 text-cyan-300 px-1 rounded truncate max-w-[90%]">
-                                    {peerMember?.username || 'Bạn học'}
-                                  </span>
-                                </div>
-                              );
-                            })
-                          )}
                         </div>
 
-                        {/* THANH CÔNG CỤ CALL (MIC / CAM / SCREEN SHARE / END) */}
-                        <div className="flex items-center justify-center gap-1.5 bg-slate-950/90 p-1.5 rounded-lg border border-slate-800">
-                          <button
-                            onClick={toggleMute}
-                            title={isAudioMuted ? 'Bật Micro' : 'Tắt Micro'}
-                            className={`p-1.5 rounded-md text-xs transition-colors cursor-pointer ${
-                              isAudioMuted ? 'bg-red-950 text-red-400 border border-red-800' : 'bg-slate-800 text-cyan-400 hover:bg-slate-700'
-                            }`}
-                          >
-                            {isAudioMuted ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
-                          </button>
+                        {/* 3. THANH ĐIỀU KHIỂN DISCORD CALL TOOLBAR */}
+                        <div className="flex items-center justify-between bg-slate-950/90 p-2 rounded-xl border border-slate-800 shadow-inner">
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={toggleMute}
+                              title={isAudioMuted ? 'Bật Micro' : 'Tắt Micro'}
+                              className={`p-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                isAudioMuted ? 'bg-red-950 text-red-400 border border-red-800' : 'bg-slate-800 text-cyan-400 hover:bg-slate-700'
+                              }`}
+                            >
+                              {isAudioMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                            </button>
 
-                          <button
-                            onClick={toggleVideo}
-                            title={isVideoOff ? 'Bật Camera' : 'Tắt Camera'}
-                            className={`p-1.5 rounded-md text-xs transition-colors cursor-pointer ${
-                              isVideoOff ? 'bg-red-950 text-red-400 border border-red-800' : 'bg-slate-800 text-cyan-400 hover:bg-slate-700'
-                            }`}
-                          >
-                            {isVideoOff ? <VideoOff className="h-3.5 w-3.5" /> : <Video className="h-3.5 w-3.5" />}
-                          </button>
+                            <button
+                              onClick={toggleVideo}
+                              title={isVideoOff ? 'Bật Camera' : 'Tắt Camera'}
+                              className={`p-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                isVideoOff ? 'bg-red-950 text-red-400 border border-red-800' : 'bg-slate-800 text-cyan-400 hover:bg-slate-700'
+                              }`}
+                            >
+                              {isVideoOff ? <VideoOff className="h-4 w-4" /> : <Video className="h-4 w-4" />}
+                            </button>
 
-                          <button
-                            onClick={toggleScreenShare}
-                            title={isScreenSharing ? 'Tắt chia sẻ màn hình' : 'Chia sẻ màn hình'}
-                            className={`p-1.5 rounded-md text-xs transition-colors cursor-pointer ${
-                              isScreenSharing ? 'bg-amber-950 text-amber-400 border border-amber-800 animate-pulse' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                            }`}
-                          >
-                            <Tv className="h-3.5 w-3.5" />
-                          </button>
+                            <button
+                              onClick={toggleScreenShare}
+                              title={isScreenSharing ? 'Dừng chia sẻ màn hình' : 'Chia sẻ màn hình'}
+                              className={`p-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                isScreenSharing ? 'bg-amber-950 text-amber-400 border border-amber-800 animate-pulse' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                              }`}
+                            >
+                              <Tv className="h-4 w-4" />
+                            </button>
+                          </div>
 
                           <button
                             onClick={endCall}
-                            title="Tắt cuộc gọi"
-                            className="p-1.5 rounded-md text-xs bg-red-600 hover:bg-red-500 text-white transition-colors cursor-pointer ml-auto"
+                            title="Kết thúc cuộc gọi"
+                            className="px-3 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-black flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
                           >
-                            <PhoneOff className="h-3.5 w-3.5" />
+                            <PhoneOff className="h-4 w-4" /> TẮT CALL
                           </button>
                         </div>
+
+                        {/* 4. KHUNG CHAT TRỰC TIẾP TRONG CALL (IN-CALL LIVE TEXT CHAT) */}
+                        <div className="border-t border-slate-800/80 pt-2 space-y-2">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                            💬 CHAT TRỰC TIẾP TRONG PHÒNG HỌC:
+                          </span>
+                          <div className="bg-slate-950/80 border border-slate-850 rounded-xl p-2 h-28 overflow-y-auto space-y-1.5 text-xs">
+                            {chatMessages.length === 0 ? (
+                              <p className="text-[10px] text-slate-600 text-center py-4 italic">Chưa có tin nhắn nào. Hãy gửi lời chào đến bạn học!</p>
+                            ) : (
+                              chatMessages.slice(-15).map((m) => {
+                                const isMe = m.senderId === userId;
+                                return (
+                                  <div key={m.id} className={`flex items-start gap-1.5 ${isMe ? 'flex-row-reverse' : ''}`}>
+                                    <div className="w-4 h-4 rounded-full bg-cyan-950 border border-cyan-600 text-[8px] flex items-center justify-center text-cyan-400 shrink-0 mt-0.5">
+                                      🛸
+                                    </div>
+                                    <div className={`max-w-[80%] p-1.5 rounded-lg text-[11px] leading-tight ${isMe ? 'bg-cyan-950 border border-cyan-800 text-cyan-200' : 'bg-slate-900 border border-slate-800 text-slate-300'}`}>
+                                      <span className="font-bold text-[9px] block opacity-75">{isMe ? 'Bạn' : m.senderName || 'Bạn học'}</span>
+                                      {m.content}
+                                    </div>
+                                  </div>
+                                );
+                              })
+                            )}
+                          </div>
+
+                          {/* Ô NHẬP TIN NHẮN CHAT TRONG CALL */}
+                          <form
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              if (chatInput.trim()) {
+                                setChatMessages((prev) => [
+                                  ...prev,
+                                  {
+                                    id: `in-call-${Date.now()}`,
+                                    senderId: userId,
+                                    senderName: profileData?.username || 'Bạn',
+                                    content: chatInput.trim(),
+                                    createdAt: new Date().toISOString()
+                                  }
+                                ]);
+                                setChatInput('');
+                              }
+                            }}
+                            className="flex gap-1.5"
+                          >
+                            <input
+                              type="text"
+                              value={chatInput}
+                              onChange={(e) => setChatInput(e.target.value)}
+                              placeholder="Nhắn tin khi đang call video..."
+                              className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500 placeholder:text-slate-600"
+                            />
+                            <button
+                              type="submit"
+                              disabled={!chatInput.trim()}
+                              className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-slate-950 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                            >
+                              <Send className="h-3.5 w-3.5" />
+                            </button>
+                          </form>
+                        </div>
+
                       </div>
                     )}
 

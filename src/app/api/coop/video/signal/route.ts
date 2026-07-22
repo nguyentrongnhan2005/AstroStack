@@ -1,33 +1,6 @@
 import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
-// Bộ nhớ tạm thời lưu trữ tín hiệu WebRTC signaling theo lobbyId
-interface SignalMessage {
-  id: string;
-  senderId: string;
-  senderName: string;
-  targetId: string; // ID người nhận (hoặc 'all')
-  type: 'offer' | 'answer' | 'candidate' | 'leave';
-  sdp?: any;
-  candidate?: any;
-  timestamp: number;
-}
-
-const lobbySignals: { [lobbyId: string]: SignalMessage[] } = {};
-
-// Clean up tín hiệu cũ hơn 2 phút tránh ngốn bộ nhớ
-function cleanupOldSignals() {
-  const now = Date.now();
-  for (const lobbyId in lobbySignals) {
-    lobbySignals[lobbyId] = lobbySignals[lobbyId].filter(
-      (sig) => now - sig.timestamp < 120000
-    );
-    if (lobbySignals[lobbyId].length === 0) {
-      delete lobbySignals[lobbyId];
-    }
-  }
-}
-
-// POST: Gửi tín hiệu SDP Offer, Answer hoặc ICE Candidate
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -37,32 +10,31 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Thiếu thông tin tín hiệu WebRTC' }, { status: 400 });
     }
 
-    if (!lobbySignals[lobbyId]) {
-      lobbySignals[lobbyId] = [];
-    }
+    const signal = await prisma.coopSignal.create({
+      data: {
+        lobbyId,
+        senderId,
+        senderName: senderName || 'Phi hành gia',
+        targetId: targetId || 'all',
+        type,
+        sdp: sdp ? JSON.stringify(sdp) : null,
+        candidate: candidate ? JSON.stringify(candidate) : null
+      }
+    });
 
-    const newMessage: SignalMessage = {
-      id: `sig-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-      senderId,
-      senderName: senderName || 'Phi hành gia',
-      targetId: targetId || 'all',
-      type,
-      sdp,
-      candidate,
-      timestamp: Date.now()
-    };
+    // Cleanup signal cũ hơn 2 phút trong DB Neon
+    const deleteTime = new Date(Date.now() - 120000);
+    await prisma.coopSignal.deleteMany({
+      where: { createdAt: { lt: deleteTime } }
+    }).catch(e => console.error('Cleanup signal error:', e));
 
-    lobbySignals[lobbyId].push(newMessage);
-    cleanupOldSignals();
-
-    return NextResponse.json({ success: true, signalId: newMessage.id });
+    return NextResponse.json({ success: true, signalId: signal.id });
   } catch (error: any) {
     console.error('Error in POST /api/coop/video/signal:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-// GET: Lấy các tín hiệu WebRTC mới dành cho senderId trong lobbyId
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -74,19 +46,35 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Missing lobbyId or userId' }, { status: 400 });
     }
 
-    const allSignals = lobbySignals[lobbyId] || [];
-    
-    // Lọc tín hiệu gửi cho userId này (hoặc gửi tới 'all') ngoại trừ các tín hiệu do chính userId này tự gửi
-    const pendingSignals = allSignals.filter(
-      (sig) =>
-        sig.timestamp > since &&
-        sig.senderId !== userId &&
-        (sig.targetId === userId || sig.targetId === 'all')
-    );
+    const sinceDate = new Date(since);
+
+    const signals = await prisma.coopSignal.findMany({
+      where: {
+        lobbyId,
+        createdAt: { gt: sinceDate },
+        senderId: { not: userId },
+        OR: [
+          { targetId: 'all' },
+          { targetId: userId }
+        ]
+      },
+      orderBy: { createdAt: 'asc' }
+    });
+
+    const parsedSignals = signals.map((s) => ({
+      id: s.id,
+      senderId: s.senderId,
+      senderName: s.senderName,
+      targetId: s.targetId,
+      type: s.type,
+      sdp: s.sdp ? JSON.parse(s.sdp) : null,
+      candidate: s.candidate ? JSON.parse(s.candidate) : null,
+      timestamp: new Date(s.createdAt).getTime()
+    }));
 
     return NextResponse.json({
       success: true,
-      signals: pendingSignals,
+      signals: parsedSignals,
       serverTime: Date.now()
     });
   } catch (error: any) {

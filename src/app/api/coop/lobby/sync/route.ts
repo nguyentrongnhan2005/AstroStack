@@ -37,8 +37,8 @@ export async function POST(request: Request) {
       }
     });
 
-    // 2. Lọc các thành viên đang hoạt động thực tế (online trong 15 giây gần nhất)
-    const thresholdTime = new Date(Date.now() - 15 * 1000);
+    // 2. Lọc các thành viên đang hoạt động thực tế (online trong 45 giây gần nhất)
+    const thresholdTime = new Date(Date.now() - 45 * 1000);
 
     const activeMembers = await prisma.lobbyMember.findMany({
       where: {
@@ -55,8 +55,8 @@ export async function POST(request: Request) {
       }
     });
 
-    // 3. Tự động dọn dẹp các thành viên offline lâu hơn 1 phút khỏi DB để giải phóng dung lượng
-    const deleteThreshold = new Date(Date.now() - 60 * 1000);
+    // 3. Tự động dọn dẹp các thành viên offline lâu hơn 3 phút khỏi DB để giải phóng dung lượng
+    const deleteThreshold = new Date(Date.now() - 180 * 1000);
     await prisma.lobbyMember.deleteMany({
       where: {
         lobbyId: lobbyId,
