@@ -43,9 +43,18 @@ import {
   Search,
   UserPlus,
   Video,
-  Monitor
+  Monitor,
+  Mic,
+  MicOff,
+  VideoOff,
+  PhoneOff,
+  Tv,
+  Play,
+  Pause,
+  RotateCcw
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { useWebRTCVideoCall } from '@/hooks/useWebRTCVideoCall';
 
 const COLOR_MAP: { [key: string]: string } = {
   blue: '#3b82f6',
@@ -94,6 +103,63 @@ export default function Home() {
   const [cameraTarget, setCameraTarget] = useState<[number, number, number] | null>(null);
   const [groqKeyInput, setGroqKeyInput] = useState<string>('');
   const [myUserId, setMyUserId] = useState<string>('');
+  const [userId, setUserId] = useState<string>('');
+  const [profileData, setProfileData] = useState<{ id: string; email: string; username: string } | null>(null);
+
+  // WebRTC Video Call Hook cho phòng Co-Op Vũ Trụ
+  const {
+    localStream,
+    remoteStreams,
+    isCallActive,
+    isAudioMuted,
+    isVideoOff,
+    isScreenSharing,
+    callError,
+    startCall,
+    endCall,
+    toggleMute,
+    toggleVideo,
+    toggleScreenShare
+  } = useWebRTCVideoCall(activeLobbyId, userId || myUserId, profileData?.username || myUserId);
+
+  // State cho Space Pomodoro Timer (25m tập trung - 5m nghỉ)
+  const [pomodoroSeconds, setPomodoroSeconds] = useState<number>(25 * 60);
+  const [pomodoroMode, setPomodoroMode] = useState<'focus' | 'break'>('focus');
+  const [pomodoroRunning, setPomodoroRunning] = useState<boolean>(false);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout | null = null;
+    if (pomodoroRunning) {
+      timer = setInterval(() => {
+        setPomodoroSeconds((prev) => {
+          if (prev <= 1) {
+            const nextMode = pomodoroMode === 'focus' ? 'break' : 'focus';
+            setPomodoroMode(nextMode);
+            const nextTime = nextMode === 'focus' ? 25 * 60 : 5 * 60;
+            try {
+              const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+              const osc = audioCtx.createOscillator();
+              const gain = audioCtx.createGain();
+              osc.type = 'sine';
+              osc.frequency.setValueAtTime(nextMode === 'break' ? 880 : 523.25, audioCtx.currentTime);
+              gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+              osc.connect(gain);
+              gain.connect(audioCtx.destination);
+              osc.start();
+              osc.stop(audioCtx.currentTime + 0.8);
+            } catch (e) {
+              console.error(e);
+            }
+            return nextTime;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [pomodoroRunning, pomodoroMode]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -580,7 +646,6 @@ export default function Home() {
 
   // State cho User Profile Modal
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [profileData, setProfileData] = useState<{ id: string; email: string; username: string } | null>(null);
   const [newUsername, setNewUsername] = useState('');
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -627,7 +692,6 @@ export default function Home() {
   const [authChecking, setAuthChecking] = useState<boolean>(true);
 
   // State cho Neon Database Sync
-  const [userId, setUserId] = useState<string>('');
   const [dbSyncLoading, setDbSyncLoading] = useState(false);
   const [dbSyncMessage, setDbSyncMessage] = useState('');
 
@@ -1746,6 +1810,164 @@ Thứ 5, Tiết 7-9 (Thực hành), Phòng PM.302`}</pre>
                     </div>
                   </div>
 
+                  {/* BẢNG KHOANG HỌC TẬP VIDEO CALL & SPACE POMODORO */}
+                  <div className="p-3 bg-[#0a0f1d] border border-cyan-500/30 rounded-xl space-y-3 shadow-[0_0_15px_rgba(6,182,212,0.1)]">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black text-cyan-400 tracking-wider flex items-center gap-1">
+                        🚀 SPACE STUDY CABIN
+                      </span>
+                      {isCallActive && (
+                        <span className="text-[9px] font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-800 px-1.5 py-0.5 rounded animate-pulse">
+                          LIVE CALL
+                        </span>
+                      )}
+                    </div>
+
+                    {/* NÚT KHỞI ĐỘNG CALL VIDEO */}
+                    {!isCallActive ? (
+                      <button
+                        onClick={startCall}
+                        className="w-full py-2 bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer border border-cyan-400/30"
+                      >
+                        <Video className="h-4 w-4" /> BẮT ĐẦU CALL VIDEO NHÓM
+                      </button>
+                    ) : (
+                      <div className="space-y-2">
+                        {/* BẢNG VIDEO ĐIỀU KHIỂN CALL */}
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {/* Local Stream */}
+                          <div className="relative rounded-lg overflow-hidden bg-slate-950 border border-cyan-800/80 aspect-video shadow">
+                            <video
+                              ref={(node) => {
+                                if (node && localStream) node.srcObject = localStream;
+                              }}
+                              autoPlay
+                              playsInline
+                              muted
+                              className={`w-full h-full object-cover ${isVideoOff ? 'hidden' : 'block'}`}
+                            />
+                            {isVideoOff && (
+                              <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900 text-slate-400 text-[10px]">
+                                <UserIcon className="h-5 w-5 text-cyan-400 mb-0.5" />
+                                <span>(Bạn - Tắt Cam)</span>
+                              </div>
+                            )}
+                            <span className="absolute bottom-1 left-1 text-[8px] font-bold bg-slate-950/80 text-cyan-300 px-1 rounded">
+                              Bạn {isAudioMuted && '🔇'}
+                            </span>
+                          </div>
+
+                          {/* Remote Streams */}
+                          {Object.keys(remoteStreams).length === 0 ? (
+                            <div className="rounded-lg bg-slate-950 border border-slate-800 aspect-video flex flex-col items-center justify-center text-[9px] text-slate-500 p-1 text-center">
+                              <span>Đang chờ bạn bè kết nối call...</span>
+                            </div>
+                          ) : (
+                            Object.entries(remoteStreams).map(([peerId, stream]) => {
+                              const peerMember = lobbyMembers.find((m) => m.userId === peerId);
+                              return (
+                                <div key={peerId} className="relative rounded-lg overflow-hidden bg-slate-950 border border-cyan-500/50 aspect-video shadow">
+                                  <video
+                                    ref={(node) => {
+                                      if (node && stream) node.srcObject = stream;
+                                    }}
+                                    autoPlay
+                                    playsInline
+                                    className="w-full h-full object-cover"
+                                  />
+                                  <span className="absolute bottom-1 left-1 text-[8px] font-bold bg-slate-950/80 text-cyan-300 px-1 rounded truncate max-w-[90%]">
+                                    {peerMember?.username || 'Bạn học'}
+                                  </span>
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+
+                        {/* THANH CÔNG CỤ CALL (MIC / CAM / SCREEN SHARE / END) */}
+                        <div className="flex items-center justify-center gap-1.5 bg-slate-950/90 p-1.5 rounded-lg border border-slate-800">
+                          <button
+                            onClick={toggleMute}
+                            title={isAudioMuted ? 'Bật Micro' : 'Tắt Micro'}
+                            className={`p-1.5 rounded-md text-xs transition-colors cursor-pointer ${
+                              isAudioMuted ? 'bg-red-950 text-red-400 border border-red-800' : 'bg-slate-800 text-cyan-400 hover:bg-slate-700'
+                            }`}
+                          >
+                            {isAudioMuted ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
+                          </button>
+
+                          <button
+                            onClick={toggleVideo}
+                            title={isVideoOff ? 'Bật Camera' : 'Tắt Camera'}
+                            className={`p-1.5 rounded-md text-xs transition-colors cursor-pointer ${
+                              isVideoOff ? 'bg-red-950 text-red-400 border border-red-800' : 'bg-slate-800 text-cyan-400 hover:bg-slate-700'
+                            }`}
+                          >
+                            {isVideoOff ? <VideoOff className="h-3.5 w-3.5" /> : <Video className="h-3.5 w-3.5" />}
+                          </button>
+
+                          <button
+                            onClick={toggleScreenShare}
+                            title={isScreenSharing ? 'Tắt chia sẻ màn hình' : 'Chia sẻ màn hình'}
+                            className={`p-1.5 rounded-md text-xs transition-colors cursor-pointer ${
+                              isScreenSharing ? 'bg-amber-950 text-amber-400 border border-amber-800 animate-pulse' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                            }`}
+                          >
+                            <Tv className="h-3.5 w-3.5" />
+                          </button>
+
+                          <button
+                            onClick={endCall}
+                            title="Tắt cuộc gọi"
+                            className="p-1.5 rounded-md text-xs bg-red-600 hover:bg-red-500 text-white transition-colors cursor-pointer ml-auto"
+                          >
+                            <PhoneOff className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {callError && (
+                      <p className="text-[10px] text-red-400 bg-red-950/30 p-1.5 rounded border border-red-900/40">
+                        {callError}
+                      </p>
+                    )}
+
+                    {/* SPACE POMODORO TIMER */}
+                    <div className="pt-2 border-t border-slate-800/80">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                          ⏱️ POMODORO ({pomodoroMode === 'focus' ? 'TẬP TRUNG' : 'NGHỈ GIẢI LAO'})
+                        </span>
+                        <span className={`text-xs font-mono font-black ${pomodoroMode === 'focus' ? 'text-amber-400' : 'text-emerald-400'}`}>
+                          {String(Math.floor(pomodoroSeconds / 60)).padStart(2, '0')}:{String(pomodoroSeconds % 60).padStart(2, '0')}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => setPomodoroRunning(!pomodoroRunning)}
+                          className={`flex-1 py-1 rounded text-[10px] font-bold flex items-center justify-center gap-1 transition-all cursor-pointer ${
+                            pomodoroRunning ? 'bg-amber-950 text-amber-400 border border-amber-800' : 'bg-cyan-950 text-cyan-300 border border-cyan-800 hover:bg-cyan-900'
+                          }`}
+                        >
+                          {pomodoroRunning ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+                          {pomodoroRunning ? 'TẠM DỪNG' : 'BẮT ĐẦU CA HỌC'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setPomodoroRunning(false);
+                            setPomodoroSeconds(pomodoroMode === 'focus' ? 25 * 60 : 5 * 60);
+                          }}
+                          title="Reset bộ đếm"
+                          className="p-1 bg-slate-900 hover:bg-slate-800 text-slate-400 rounded border border-slate-800 cursor-pointer"
+                        >
+                          <RotateCcw className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Nút Rời Phòng */}
                   <button
                     onClick={handleLeaveLobby}
@@ -1829,6 +2051,9 @@ Thứ 5, Tiết 7-9 (Thực hành), Phòng PM.302`}</pre>
                 onSelectCard={(card) => setSelectedCard(card)} 
                 compareCourseCards={compareCourseCards} 
                 cameraTarget={cameraTarget}
+                localStream={localStream}
+                remoteStreams={remoteStreams}
+                isCallActive={isCallActive}
               />
               
               {/* WIDGET HOLOGRAM ĐỊNH VỊ CA HỌC TIẾP THEO */}

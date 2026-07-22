@@ -1868,9 +1868,20 @@ interface CardBoard3DProps {
   compareCourseCards?: CourseCard[];
   level?: number;
   cameraTarget?: [number, number, number] | null;
+  localStream?: MediaStream | null;
+  remoteStreams?: { [userId: string]: MediaStream };
+  isCallActive?: boolean;
 }
 
-export const CardBoard3D: React.FC<CardBoard3DProps> = ({ onSelectCard, compareCourseCards, level = 1, cameraTarget = null }) => {
+export const CardBoard3D: React.FC<CardBoard3DProps> = ({ 
+  onSelectCard, 
+  compareCourseCards, 
+  level = 1, 
+  cameraTarget = null,
+  localStream,
+  remoteStreams,
+  isCallActive
+}) => {
   const [renderMode, setRenderMode] = useState<'3D' | '2D'>('3D');
   const [webGLAvailable, setWebGLAvailable] = useState(true);
   
