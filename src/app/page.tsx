@@ -1713,6 +1713,24 @@ export default function Home() {
           {/* TAB 1: KHO THẺ BÀI */}
           {activeTab === 'cards' && (
             <div className="space-y-4">
+              {courseCards.length > 0 && (
+                <div className="flex items-center justify-between bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 shadow-sm">
+                  <span className="text-xs font-bold text-slate-300">
+                    Tổng số: <span className="text-cyan-400 font-black">{courseCards.length}</span> môn học
+                  </span>
+                  <button
+                    onClick={() => {
+                      if (confirm('Bạn có chắc chắn muốn xóa tất cả môn học trong kho thẻ và thời khóa biểu 3D hiện tại?')) {
+                        clearAllData();
+                      }
+                    }}
+                    className="px-3 py-1.5 bg-red-950/70 hover:bg-red-900/90 border border-red-800/80 text-red-300 text-[11px] font-bold rounded-lg flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> XÓA SẠCH DỮ LIỆU TKB
+                  </button>
+                </div>
+              )}
+
               {courseCards.length === 0 ? (
                 <div className="text-center py-10 px-4 rounded-xl border border-dashed border-slate-800 bg-slate-900/30">
                   <BookOpen className="h-10 w-10 text-slate-600 mx-auto mb-3" />
