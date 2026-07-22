@@ -1964,7 +1964,7 @@ export const CardBoard3D: React.FC<CardBoard3DProps> = ({ onSelectCard, compareC
     <div className="w-full h-full relative bg-[#090d16] rounded-xl overflow-hidden border border-slate-800 shadow-2xl flex flex-col">
       
       {/* THANH ĐIỀU KHIỂN CHUYỂN CHẾ ĐỘ RENDER (2D vs 3D) */}
-      <div className="absolute top-4 right-4 z-10 flex gap-1.5 bg-slate-900/90 backdrop-blur-md p-1 rounded-lg border border-slate-700/80">
+      <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10 flex gap-1 bg-slate-900/90 backdrop-blur-md p-1 rounded-lg border border-slate-700/80">
         <button
           onClick={() => {
             if (!webGLAvailable) {
@@ -1973,24 +1973,24 @@ export const CardBoard3D: React.FC<CardBoard3DProps> = ({ onSelectCard, compareC
             }
             setRenderMode('3D');
           }}
-          className={`px-3 py-1 rounded text-[11px] font-bold flex items-center gap-1 transition-all ${
+          className={`px-2 sm:px-3 py-1 rounded text-[10px] sm:text-[11px] font-bold flex items-center gap-1 transition-all ${
             renderMode === '3D'
               ? 'bg-cyan-600 text-slate-900 shadow-md'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
           }`}
         >
-          <Monitor className="h-3.5 w-3.5" />
+          <Monitor className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
           3D BOARD
         </button>
         <button
           onClick={() => setRenderMode('2D')}
-          className={`px-3 py-1 rounded text-[11px] font-bold flex items-center gap-1 transition-all ${
+          className={`px-2 sm:px-3 py-1 rounded text-[10px] sm:text-[11px] font-bold flex items-center gap-1 transition-all ${
             renderMode === '2D'
               ? 'bg-cyan-600 text-slate-900 shadow-md'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
           }`}
         >
-          <LayoutGrid className="h-3.5 w-3.5" />
+          <LayoutGrid className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
           2D GRID
         </button>
       </div>
@@ -2058,7 +2058,7 @@ export const CardBoard3D: React.FC<CardBoard3DProps> = ({ onSelectCard, compareC
         /* ====================================================
             RENDER MODE 2D: Grid HTML/CSS (Dự phòng cho mobile/lỗi WebGL)
             ==================================================== */
-        <div className="w-full h-full flex-1 p-6 pt-16 flex flex-col overflow-y-auto">
+        <div className="w-full h-full flex-1 p-2 sm:p-4 md:p-6 pt-14 md:pt-16 flex flex-col overflow-y-auto overflow-x-auto">
           {!webGLAvailable && (
             <div className="mb-4 p-2 bg-amber-950/40 border border-amber-900/50 rounded-lg flex items-center gap-2 text-xs text-amber-400">
               <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />

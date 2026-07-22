@@ -42,7 +42,8 @@ import {
   FileJson,
   Search,
   UserPlus,
-  Video
+  Video,
+  Monitor
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -83,6 +84,7 @@ export default function Home() {
 
   // State cục bộ
   const [activeTab, setActiveTab] = useState<'cards' | 'import' | 'coop'>('cards');
+  const [mobileTab, setMobileTab] = useState<'board' | 'deck' | 'social' | 'export'>('board');
   const [selectedCard, setSelectedCard] = useState<CourseCard | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [compareUserId, setCompareUserId] = useState<string | null>(null);
@@ -1304,12 +1306,62 @@ export default function Home() {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row h-screen w-screen overflow-hidden bg-[#090d16] text-slate-100">
+    <div className="flex flex-col lg:flex-row h-screen w-screen overflow-hidden bg-[#090d16] text-slate-100 relative">
       
+      {/* MOBILE TOP HEADER */}
+      <div className="flex items-center justify-between px-4 py-2.5 bg-[#0c1221] border-b border-slate-800 lg:hidden shrink-0 z-30">
+        <div className="flex items-center gap-2">
+          <img
+            src="/nhandev-logo.png"
+            alt="NhânDev Logo"
+            className="h-8 w-8 rounded-lg object-contain bg-white p-0.5"
+          />
+          <div>
+            <h1 className="text-sm font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
+              CardTKB 3D
+            </h1>
+            <p className="text-[9px] text-slate-400 font-mono max-w-[110px] truncate" title={myUserId}>
+              ID: {myUserId || 'Chưa rõ'}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => syncScheduleToDB()}
+            disabled={dbSyncLoading}
+            title="Lưu TKB lên Cloud"
+            className="p-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-300 text-xs font-bold flex items-center gap-1 cursor-pointer"
+          >
+            <Cloud className={`h-4 w-4 ${dbSyncLoading ? 'animate-spin text-amber-400' : 'text-cyan-400'}`} />
+          </button>
+          <button
+            onClick={handleOpenProfileModal}
+            title="Thông tin tài khoản"
+            className="p-2 bg-slate-900 border border-slate-800 text-slate-300 hover:text-cyan-400 rounded-lg cursor-pointer"
+          >
+            <UserIcon className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => {
+              localStorage.removeItem('cardtkb_token');
+              localStorage.removeItem('cardtkb_user_id');
+              localStorage.removeItem('cardtkb_email');
+              localStorage.removeItem('cardtkb_semester_id');
+              router.push('/login');
+            }}
+            title="Đăng xuất khỏi hệ thống"
+            className="p-2 bg-slate-900 border border-slate-800 text-slate-300 hover:text-red-400 rounded-lg cursor-pointer"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
       {/* ====================================================
           LEFT SIDEBAR: KHO BÀI (DECK) & IMPORT PANEL
           ==================================================== */}
-      <div className="w-full lg:w-96 flex flex-col border-r border-slate-800 bg-[#0c1221] shrink-0 z-20">
+      <div className={`w-full lg:w-96 flex-col border-r border-slate-800 bg-[#0c1221] shrink-0 z-20 pb-16 lg:pb-0 ${mobileTab === 'deck' ? 'flex flex-1 overflow-y-auto' : 'hidden lg:flex'}`}>
         
         {/* Logo & Version Selector */}
         <div className="p-4 border-b border-slate-800 flex flex-col gap-3">
@@ -1784,7 +1836,7 @@ Thứ 5, Tiết 7-9 (Thực hành), Phòng PM.302`}</pre>
       {/* ====================================================
           CENTER: 3D BOARD CANVAS
           ==================================================== */}
-      <div className="flex-1 flex flex-col h-full relative">
+      <div className={`flex-1 flex-col h-full relative pb-16 lg:pb-0 ${mobileTab === 'board' ? 'flex' : 'hidden lg:flex'}`}>
         <div id="tkb-board-capture-area" className="flex-1 p-4 pb-2 relative">
           {isMounted ? (
             <>
@@ -1895,7 +1947,7 @@ Thứ 5, Tiết 7-9 (Thực hành), Phòng PM.302`}</pre>
       {/* ====================================================
           RIGHT PANEL: UTILITY HUB (CHAT & EXPORTS)
           ==================================================== */}
-      <div className="w-full lg:w-80 flex flex-col border-l border-slate-800 bg-[#0c1221] shrink-0 z-20 overflow-hidden">
+      <div className={`w-full lg:w-80 flex-col border-l border-slate-800 bg-[#0c1221] shrink-0 z-20 overflow-hidden pb-16 lg:pb-0 ${mobileTab === 'social' || mobileTab === 'export' ? 'flex flex-1' : 'hidden lg:flex'}`}>
         
         {/* Navigation Tabs Header */}
         <div className="flex border-b border-slate-800 bg-slate-950/40 p-1">
@@ -2419,6 +2471,60 @@ Thứ 5, Tiết 7-9 (Thực hành), Phòng PM.302`}</pre>
           </div>
         )}
 
+      </div>
+
+      {/* ====================================================
+          MOBILE BOTTOM NAVIGATION BAR (FIXED BOTTOM AT < LG)
+          ==================================================== */}
+      <div className="fixed bottom-0 inset-x-0 h-16 bg-[#0c1221]/95 backdrop-blur-xl border-t border-slate-800 flex items-center justify-around z-40 lg:hidden">
+        <button
+          onClick={() => setMobileTab('board')}
+          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-lg transition-colors cursor-pointer ${
+            mobileTab === 'board' ? 'text-cyan-400 font-bold' : 'text-slate-500 hover:text-slate-300'
+          }`}
+        >
+          <Monitor className="h-5 w-5" />
+          <span className="text-[10px]">Bàn cờ 3D</span>
+        </button>
+
+        <button
+          onClick={() => setMobileTab('deck')}
+          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-lg transition-colors cursor-pointer ${
+            mobileTab === 'deck' ? 'text-cyan-400 font-bold' : 'text-slate-500 hover:text-slate-300'
+          }`}
+        >
+          <BookOpen className="h-5 w-5" />
+          <span className="text-[10px]">Kho thẻ</span>
+        </button>
+
+        <button
+          onClick={() => {
+            setMobileTab('social');
+            setActiveRightTab('chat');
+          }}
+          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-lg transition-colors relative cursor-pointer ${
+            mobileTab === 'social' ? 'text-cyan-400 font-bold' : 'text-slate-500 hover:text-slate-300'
+          }`}
+        >
+          <MessageSquare className="h-5 w-5" />
+          <span className="text-[10px]">Trò chuyện</span>
+          {receivedRequests.length > 0 && (
+            <span className="absolute top-1 right-2 w-2 h-2 bg-red-500 rounded-full animate-ping" />
+          )}
+        </button>
+
+        <button
+          onClick={() => {
+            setMobileTab('export');
+            setActiveRightTab('export');
+          }}
+          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-lg transition-colors cursor-pointer ${
+            mobileTab === 'export' ? 'text-cyan-400 font-bold' : 'text-slate-500 hover:text-slate-300'
+          }`}
+        >
+          <Download className="h-5 w-5" />
+          <span className="text-[10px]">Xuất & Lưu</span>
+        </button>
       </div>
 
       {/* ====================================================

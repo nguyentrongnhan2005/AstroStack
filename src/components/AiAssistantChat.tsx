@@ -121,18 +121,18 @@ export default function AiAssistantChat() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 z-50 w-16 h-16 bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 rounded-full flex items-center justify-center shadow-[0_0_25px_rgba(6,182,212,0.4)] border border-cyan-400/40 hover:scale-105 active:scale-95 transition-all duration-300 group cursor-pointer"
+          className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-40 w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 rounded-full flex items-center justify-center shadow-[0_0_25px_rgba(6,182,212,0.4)] border border-cyan-400/40 hover:scale-105 active:scale-95 transition-all duration-300 group cursor-pointer"
           title="Trợ lý phi hành gia ảo Gemini"
         >
           <div className="absolute inset-0 rounded-full bg-cyan-400/10 animate-ping pointer-events-none" />
-          <Bot className="w-8 h-8 text-white group-hover:rotate-12 transition-transform duration-300" />
-          <Sparkles className="w-4 h-4 text-cyan-300 absolute top-2 right-2 animate-pulse" />
+          <Bot className="w-7 h-7 sm:w-8 sm:h-8 text-white group-hover:rotate-12 transition-transform duration-300" />
+          <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-300 absolute top-2 right-2 animate-pulse" />
         </button>
       )}
 
       {/* 2. KHUNG HỘP CHATBOT AI */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 z-50 w-96 h-[500px] bg-[#0b1329]/95 backdrop-blur-xl border border-cyan-500/30 rounded-3xl shadow-[0_0_40px_rgba(6,182,212,0.25)] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-300">
+        <div className="fixed bottom-0 right-0 sm:bottom-6 sm:right-6 z-50 w-full sm:w-96 h-[85vh] sm:h-[500px] bg-[#0b1329]/95 backdrop-blur-xl border border-cyan-500/30 rounded-t-3xl sm:rounded-3xl shadow-[0_0_40px_rgba(6,182,212,0.25)] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-300">
           
           {/* HEADER CHAT: HIỂN THỊ AVATAR PHI HÀNH GIA 3D ĐỘC ĐÁO */}
           <div className="relative h-28 bg-gradient-to-r from-slate-900 via-[#0e162f] to-slate-900 border-b border-cyan-500/20 px-4 py-2 flex items-center justify-between">
