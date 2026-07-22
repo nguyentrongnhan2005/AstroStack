@@ -38,14 +38,16 @@ export function useWebRTCVideoCall(lobbyId: string | null, userId: string | null
     usernameRef.current = username;
   }, [lobbyId, userId, username]);
 
-  // STUN Servers chuẩn Google & Cloudflare
+  // STUN & TURN Servers chuẩn Google, Twilio & Cloudflare
   const iceServers: RTCConfiguration = {
     iceServers: [
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' },
       { urls: 'stun:stun2.l.google.com:19302' },
       { urls: 'stun:stun3.l.google.com:19302' },
-      { urls: 'stun:stun4.l.google.com:19302' }
+      { urls: 'stun:stun4.l.google.com:19302' },
+      { urls: 'stun:global.stun.twilio.com:3478' },
+      { urls: 'stun:relay.metered.ca:80' }
     ]
   };
 
@@ -116,13 +118,26 @@ export function useWebRTCVideoCall(lobbyId: string | null, userId: string | null
 
     // Nhận luồng Video/Audio remote từ peer
     pc.ontrack = (event) => {
-      if (event.streams && event.streams[0]) {
-        const stream = event.streams[0];
-        setRemoteStreams((prev) => ({
+      setRemoteStreams((prev) => {
+        const existingStream = prev[targetUserId];
+        let newStream: MediaStream;
+        if (existingStream) {
+          newStream = new MediaStream(existingStream.getTracks());
+          if (event.track && !newStream.getTracks().some((t) => t.id === event.track.id)) {
+            newStream.addTrack(event.track);
+          }
+        } else {
+          if (event.streams && event.streams[0]) {
+            newStream = new MediaStream(event.streams[0].getTracks());
+          } else {
+            newStream = new MediaStream([event.track]);
+          }
+        }
+        return {
           ...prev,
-          [targetUserId]: stream
-        }));
-      }
+          [targetUserId]: newStream
+        };
+      });
     };
 
     pc.oniceconnectionstatechange = () => {
