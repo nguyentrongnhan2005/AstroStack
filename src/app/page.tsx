@@ -51,7 +51,14 @@ import {
   Tv,
   Play,
   Pause,
-  RotateCcw
+  RotateCcw,
+  Hand,
+  Maximize2,
+  Minimize2,
+  Camera,
+  Smile,
+  Volume2,
+  Palette
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useWebRTCVideoCall } from '@/hooks/useWebRTCVideoCall';
@@ -115,12 +122,153 @@ export default function Home() {
     isVideoOff,
     isScreenSharing,
     callError,
+    latestSignal,
+    sendSignal,
     startCall,
     endCall,
     toggleMute,
     toggleVideo,
     toggleScreenShare
   } = useWebRTCVideoCall(activeLobbyId, userId || myUserId, profileData?.username || myUserId);
+
+  // State nâng cao cho Video Call
+  const [videoFrameSize, setVideoFrameSize] = useState<'normal' | 'large'>('large');
+  const [videoFilter, setVideoFilter] = useState<'none' | 'beauty' | 'cyberpunk' | 'warm' | 'cinema'>('none');
+  const [isHandRaised, setIsHandRaised] = useState<boolean>(false);
+  const [peerHands, setPeerHands] = useState<{ [userId: string]: boolean }>({});
+  const [floatingEmojis, setFloatingEmojis] = useState<Array<{ id: string; emoji: string; x: number; senderName: string }>>([]);
+  const [showFilterPicker, setShowFilterPicker] = useState<boolean>(false);
+  const [showSoundboard, setShowSoundboard] = useState<boolean>(false);
+
+  // Xử lý tín hiệu reaction / raise-hand / sound-effect từ bạn học
+  useEffect(() => {
+    if (!latestSignal) return;
+    const { senderId, senderName, type, payload } = latestSignal;
+    if (type === 'reaction' && payload?.emoji) {
+      const newEmoji = {
+        id: Math.random().toString(),
+        emoji: payload.emoji,
+        x: Math.floor(Math.random() * 70) + 15,
+        senderName
+      };
+      setFloatingEmojis((prev) => [...prev.slice(-15), newEmoji]);
+      setTimeout(() => {
+        setFloatingEmojis((prev) => prev.filter((e) => e.id !== newEmoji.id));
+      }, 2500);
+    } else if (type === 'raise-hand') {
+      setPeerHands((prev) => ({
+        ...prev,
+        [senderId]: payload?.isHandRaised ?? true
+      }));
+    } else if (type === 'sound-effect' && payload?.soundId) {
+      playSoundEffect(payload.soundId);
+    }
+  }, [latestSignal]);
+
+  const playSoundEffect = (soundId: string) => {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      if (soundId === 'applause') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(440, ctx.currentTime);
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.6);
+      } else if (soundId === 'bell') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.8);
+      } else if (soundId === 'space') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(200, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.5);
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.5);
+      }
+    } catch (e) {}
+  };
+
+  const sendReaction = (emoji: string) => {
+    const newEmoji = {
+      id: Math.random().toString(),
+      emoji,
+      x: Math.floor(Math.random() * 70) + 15,
+      senderName: 'Bạn'
+    };
+    setFloatingEmojis((prev) => [...prev.slice(-15), newEmoji]);
+    setTimeout(() => {
+      setFloatingEmojis((prev) => prev.filter((e) => e.id !== newEmoji.id));
+    }, 2500);
+
+    sendSignal('reaction', 'all', { emoji });
+  };
+
+  const toggleRaiseHand = () => {
+    const nextState = !isHandRaised;
+    setIsHandRaised(nextState);
+    sendSignal('raise-hand', 'all', { isHandRaised: nextState });
+  };
+
+  const playAndSendSound = (soundId: string) => {
+    playSoundEffect(soundId);
+    sendSignal('sound-effect', 'all', { soundId });
+  };
+
+  const takeCallSnapshot = () => {
+    const container = document.getElementById('discord-video-container');
+    if (!container) return;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 1280;
+    canvas.height = 720;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const grad = ctx.createLinearGradient(0, 0, 1280, 720);
+    grad.addColorStop(0, '#020617');
+    grad.addColorStop(1, '#0f172a');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 1280, 720);
+
+    const videoElements = container.querySelectorAll('video');
+    let index = 0;
+    videoElements.forEach((vid) => {
+      if (vid.readyState >= 2) {
+        try {
+          if (index === 0) {
+            ctx.drawImage(vid, 0, 0, 1280, 720);
+          } else {
+            ctx.drawImage(vid, 960, 520, 280, 180);
+            ctx.strokeStyle = '#06b6d4';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(960, 520, 280, 180);
+          }
+        } catch (e) {}
+      }
+      index++;
+    });
+
+    ctx.fillStyle = 'rgba(6, 182, 212, 0.9)';
+    ctx.font = 'bold 24px sans-serif';
+    ctx.fillText('🚀 AstroStack Space Study Snapshot', 40, 50);
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.font = '16px sans-serif';
+    ctx.fillText(new Date().toLocaleString('vi-VN'), 40, 80);
+
+    const link = document.createElement('a');
+    link.download = `AstroStack_Snapshot_${Date.now()}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  };
 
   // State cho Space Pomodoro Timer (25m tập trung - 5m nghỉ)
   const [pomodoroSeconds, setPomodoroSeconds] = useState<number>(25 * 60);
@@ -1877,32 +2025,65 @@ Thứ 5, Tiết 7-9 (Thực hành), Phòng PM.302`}</pre>
                       </button>
                     ) : (
                       <div className="space-y-3">
-                        {/* 1. KHUNG VIDEO CHÍNH KHỔNG LỒ (MAIN LARGE DISCORD VIDEO FRAME) */}
-                        <div className="relative w-full aspect-video rounded-xl bg-slate-950 border border-cyan-500/50 overflow-hidden shadow-2xl flex items-center justify-center">
+                        {/* 1. KHUNG VIDEO CHÍNH KHỔNG LỒ (MAIN EXPANDED DISCORD VIDEO FRAME) */}
+                        <div
+                          id="discord-video-container"
+                          className={`relative w-full transition-all duration-300 rounded-2xl bg-slate-950 border border-cyan-500/50 overflow-hidden shadow-[0_0_30px_rgba(6,182,212,0.2)] flex items-center justify-center ${
+                            videoFrameSize === 'large' ? 'h-[500px] sm:h-[620px]' : 'aspect-video min-h-[360px]'
+                          }`}
+                        >
+                          {/* Floating Emoji Particles Layer */}
+                          <div className="absolute inset-0 pointer-events-none z-30 overflow-hidden">
+                            {floatingEmojis.map((e) => (
+                              <div
+                                key={e.id}
+                                style={{ left: `${e.x}%` }}
+                                className="absolute bottom-6 text-4xl animate-[bounce_1.5s_infinite] transition-all duration-1000 flex flex-col items-center gap-0.5 select-none opacity-90 drop-shadow-[0_0_10px_rgba(6,182,212,0.8)]"
+                              >
+                                <span>{e.emoji}</span>
+                                <span className="text-[9px] font-black text-cyan-300 bg-slate-950/80 px-1.5 py-0.5 rounded border border-cyan-800">
+                                  {e.senderName}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+
                           {/* Remote Video Streams (Bạn bè) hoặc Screen Share */}
                           {Object.keys(remoteStreams).length > 0 ? (
                             (() => {
                               const peerIds = Object.keys(remoteStreams);
                               return (
-                                <div className={`w-full h-full grid ${peerIds.length > 1 ? 'grid-cols-2 gap-1 p-1' : 'grid-cols-1'} bg-black`}>
+                                <div className={`w-full h-full grid ${peerIds.length > 1 ? 'grid-cols-2 gap-2 p-2' : 'grid-cols-1'} bg-black`}>
                                   {peerIds.map((peerId) => {
                                     const stream = remoteStreams[peerId];
                                     const member = lobbyMembers.find((m) => m.userId === peerId);
+                                    const isPeerHandRaised = peerHands[peerId];
                                     return (
-                                      <div key={peerId} className="w-full h-full relative overflow-hidden bg-slate-900 rounded-lg">
+                                      <div key={peerId} className="w-full h-full relative overflow-hidden bg-slate-900 rounded-xl border border-slate-800 group shadow-lg">
                                         <video
                                           ref={(node) => {
-                                            if (node && stream && node.srcObject !== stream) {
-                                              node.srcObject = stream;
+                                            if (node && stream) {
+                                              if (node.srcObject !== stream) {
+                                                node.srcObject = stream;
+                                              }
+                                              node.play().catch(() => {});
                                             }
                                           }}
                                           autoPlay
                                           playsInline
                                           className="w-full h-full object-cover"
                                         />
-                                        <span className="absolute top-2 left-2 text-[10px] font-black bg-slate-950/80 backdrop-blur-md text-cyan-300 px-2 py-0.5 rounded-lg border border-cyan-800">
-                                          🎙️ {member?.username || 'Bạn học'}
-                                        </span>
+                                        {/* Tên & Status Badge */}
+                                        <div className="absolute top-3 left-3 flex items-center gap-2 z-10">
+                                          <span className="text-[11px] font-black bg-slate-950/85 backdrop-blur-md text-cyan-300 px-2.5 py-1 rounded-lg border border-cyan-700/60 shadow-md">
+                                            🎙️ {member?.username || 'Bạn học'}
+                                          </span>
+                                          {isPeerHandRaised && (
+                                            <span className="text-[10px] font-black bg-amber-500/90 text-slate-950 px-2 py-0.5 rounded-lg border border-amber-300 shadow-md animate-bounce flex items-center gap-1">
+                                              ✋ GIƠ TAY PHÁT BIỂU
+                                            </span>
+                                          )}
+                                        </div>
                                       </div>
                                     );
                                   })}
@@ -1910,17 +2091,17 @@ Thứ 5, Tiết 7-9 (Thực hành), Phòng PM.302`}</pre>
                               );
                             })()
                           ) : (
-                            <div className="flex flex-col items-center justify-center text-slate-400 gap-2 p-4 text-center">
-                              <div className="w-10 h-10 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-cyan-400 text-lg animate-pulse">
+                            <div className="flex flex-col items-center justify-center text-slate-400 gap-3 p-6 text-center">
+                              <div className="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-cyan-400 text-2xl animate-pulse shadow-inner">
                                 🛸
                               </div>
-                              <p className="text-xs font-bold text-slate-300">Đang chờ bạn bè kết nối vào cuộc gọi...</p>
-                              <p className="text-[10px] text-slate-500">Bấm "SAO CHÉP LINK PHÒNG" bên trên gửi cho bạn bè mở trên điện thoại/PC để kết nối ngay.</p>
+                              <p className="text-sm font-black text-slate-200">Đang chờ bạn bè kết nối vào cuộc gọi...</p>
+                              <p className="text-xs text-slate-400 max-w-md">Bấm "SAO CHÉP LINK PHÒNG" ở đầu trang gửi cho bạn bè để học nhóm trực tiếp nét căng chuẩn HD!</p>
                             </div>
                           )}
 
                           {/* 2. WEBCAM CÁ NHÂN NHỎ PIP (PICTURE-IN-PICTURE OVERLAY BOTTOM-RIGHT) */}
-                          <div className="absolute bottom-2 right-2 w-28 sm:w-36 aspect-video rounded-lg overflow-hidden bg-slate-900 border-2 border-cyan-400/80 shadow-2xl z-20">
+                          <div className="absolute bottom-3 right-3 w-32 sm:w-44 aspect-video rounded-xl overflow-hidden bg-slate-900 border-2 border-cyan-400/90 shadow-2xl z-20 transition-all hover:scale-105">
                             <video
                               ref={(node) => {
                                 if (node && localStream && node.srcObject !== localStream) {
@@ -1930,61 +2111,214 @@ Thứ 5, Tiết 7-9 (Thực hành), Phòng PM.302`}</pre>
                               autoPlay
                               playsInline
                               muted
+                              style={{
+                                filter:
+                                  videoFilter === 'beauty'
+                                    ? 'brightness(1.08) contrast(1.05) saturate(1.15)'
+                                    : videoFilter === 'cyberpunk'
+                                    ? 'hue-rotate(180deg) contrast(1.25) saturate(1.5)'
+                                    : videoFilter === 'warm'
+                                    ? 'sepia(0.35) saturate(1.3) brightness(1.05)'
+                                    : videoFilter === 'cinema'
+                                    ? 'grayscale(1) contrast(1.3)'
+                                    : 'none'
+                              }}
                               className={`w-full h-full object-cover ${isVideoOff ? 'hidden' : 'block'}`}
                             />
                             {isVideoOff && (
-                              <div className="w-full h-full flex flex-col items-center justify-center bg-slate-950 text-slate-400 text-[9px]">
-                                <UserIcon className="h-4 w-4 text-cyan-400 mb-0.5" />
+                              <div className="w-full h-full flex flex-col items-center justify-center bg-slate-950 text-slate-400 text-[10px]">
+                                <UserIcon className="h-5 w-5 text-cyan-400 mb-1" />
                                 <span>(Tắt Cam)</span>
                               </div>
                             )}
-                            <span className="absolute bottom-0.5 left-1 text-[7px] font-bold bg-slate-950/90 text-cyan-300 px-1 rounded select-none">
-                              Bạn {isAudioMuted && '🔇'}
+                            <span className="absolute bottom-1 left-1 text-[8px] font-bold bg-slate-950/90 text-cyan-300 px-1.5 py-0.5 rounded select-none border border-slate-800">
+                              Bạn {isAudioMuted && '🔇'} {isHandRaised && '✋'}
                             </span>
                           </div>
                         </div>
 
-                        {/* 3. THANH ĐIỀU KHIỂN DISCORD CALL TOOLBAR */}
-                        <div className="flex items-center justify-between bg-slate-950/90 p-2 rounded-xl border border-slate-800 shadow-inner">
+                        {/* 3. THANH ĐIỀU KHIỂN DISCORD CALL TOOLBAR ĐA NĂNG */}
+                        <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-950/90 p-2.5 rounded-2xl border border-slate-800 shadow-xl backdrop-blur-md">
                           <div className="flex items-center gap-1.5">
+                            {/* Bật / Tắt Mic */}
                             <button
                               onClick={toggleMute}
                               title={isAudioMuted ? 'Bật Micro' : 'Tắt Micro'}
-                              className={`p-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                                isAudioMuted ? 'bg-red-950 text-red-400 border border-red-800' : 'bg-slate-800 text-cyan-400 hover:bg-slate-700'
+                              className={`p-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                                isAudioMuted ? 'bg-red-950 text-red-400 border border-red-800 shadow-inner' : 'bg-slate-800 text-cyan-400 hover:bg-slate-700'
                               }`}
                             >
                               {isAudioMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                             </button>
 
+                            {/* Bật / Tắt Video */}
                             <button
                               onClick={toggleVideo}
                               title={isVideoOff ? 'Bật Camera' : 'Tắt Camera'}
-                              className={`p-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                                isVideoOff ? 'bg-red-950 text-red-400 border border-red-800' : 'bg-slate-800 text-cyan-400 hover:bg-slate-700'
+                              className={`p-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                                isVideoOff ? 'bg-red-950 text-red-400 border border-red-800 shadow-inner' : 'bg-slate-800 text-cyan-400 hover:bg-slate-700'
                               }`}
                             >
                               {isVideoOff ? <VideoOff className="h-4 w-4" /> : <Video className="h-4 w-4" />}
                             </button>
 
+                            {/* Chia sẻ Màn hình */}
                             <button
                               onClick={toggleScreenShare}
                               title={isScreenSharing ? 'Dừng chia sẻ màn hình' : 'Chia sẻ màn hình'}
-                              className={`p-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                              className={`p-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                                 isScreenSharing ? 'bg-amber-950 text-amber-400 border border-amber-800 animate-pulse' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                               }`}
                             >
                               <Tv className="h-4 w-4" />
                             </button>
+
+                            {/* Giơ tay phát biểu */}
+                            <button
+                              onClick={toggleRaiseHand}
+                              title="Giơ tay phát biểu"
+                              className={`p-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                                isHandRaised ? 'bg-amber-500 text-slate-950 font-black shadow-lg animate-bounce' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                              }`}
+                            >
+                              <Hand className="h-4 w-4" />
+                            </button>
+
+                            {/* Thả Emoji Reactions */}
+                            <div className="relative group">
+                              <button
+                                title="Thả cảm xúc Live"
+                                className="p-2.5 rounded-xl bg-slate-800 text-amber-400 hover:bg-slate-700 text-xs font-bold transition-all cursor-pointer"
+                              >
+                                <Smile className="h-4 w-4" />
+                              </button>
+                              <div className="absolute bottom-full left-0 mb-2 hidden group-hover:flex items-center gap-1 bg-slate-900 border border-slate-750 p-1.5 rounded-xl shadow-2xl z-50">
+                                {['❤️', '🔥', '👏', '🚀', '🎉', '💡'].map((emoji) => (
+                                  <button
+                                    key={emoji}
+                                    onClick={() => sendReaction(emoji)}
+                                    className="p-1.5 hover:bg-slate-800 rounded-lg text-lg transition-transform hover:scale-125 cursor-pointer"
+                                  >
+                                    {emoji}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Soundboard Hiệu ứng Âm thanh */}
+                            <div className="relative">
+                              <button
+                                onClick={() => setShowSoundboard(!showSoundboard)}
+                                title="Soundboard âm thanh"
+                                className={`p-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                                  showSoundboard ? 'bg-cyan-950 text-cyan-300 border border-cyan-700' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                                }`}
+                              >
+                                <Volume2 className="h-4 w-4" />
+                              </button>
+                              {showSoundboard && (
+                                <div className="absolute bottom-full left-0 mb-2 bg-slate-900 border border-cyan-800/80 p-2 rounded-xl shadow-2xl z-50 flex flex-col gap-1 w-36">
+                                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">📢 Soundboard:</span>
+                                  <button
+                                    onClick={() => playAndSendSound('applause')}
+                                    className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded text-[10px] font-bold text-left cursor-pointer"
+                                  >
+                                    👏 Vỗ tay
+                                  </button>
+                                  <button
+                                    onClick={() => playAndSendSound('bell')}
+                                    className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-amber-300 rounded text-[10px] font-bold text-left cursor-pointer"
+                                  >
+                                    🔔 Chuông báo
+                                  </button>
+                                  <button
+                                    onClick={() => playAndSendSound('space')}
+                                    className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-purple-300 rounded text-[10px] font-bold text-left cursor-pointer"
+                                  >
+                                    🛸 Tiếng Vũ trụ
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Kính Lọc Camera Filter */}
+                            <div className="relative">
+                              <button
+                                onClick={() => setShowFilterPicker(!showFilterPicker)}
+                                title="Kính lọc Camera"
+                                className={`p-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                                  videoFilter !== 'none' ? 'bg-purple-950 text-purple-400 border border-purple-800' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                                }`}
+                              >
+                                <Palette className="h-4 w-4" />
+                              </button>
+                              {showFilterPicker && (
+                                <div className="absolute bottom-full left-0 mb-2 bg-slate-900 border border-purple-800/80 p-2 rounded-xl shadow-2xl z-50 flex flex-col gap-1 w-36">
+                                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">🎭 Kính lọc Cam:</span>
+                                  <button
+                                    onClick={() => { setVideoFilter('none'); setShowFilterPicker(false); }}
+                                    className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[10px] text-left cursor-pointer"
+                                  >
+                                    🔴 Tắt filter
+                                  </button>
+                                  <button
+                                    onClick={() => { setVideoFilter('beauty'); setShowFilterPicker(false); }}
+                                    className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-pink-300 rounded text-[10px] font-bold text-left cursor-pointer"
+                                  >
+                                    ✨ Beauty Glow
+                                  </button>
+                                  <button
+                                    onClick={() => { setVideoFilter('cyberpunk'); setShowFilterPicker(false); }}
+                                    className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded text-[10px] font-bold text-left cursor-pointer"
+                                  >
+                                    🌌 Cyberpunk Neon
+                                  </button>
+                                  <button
+                                    onClick={() => { setVideoFilter('warm'); setShowFilterPicker(false); }}
+                                    className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-amber-300 rounded text-[10px] font-bold text-left cursor-pointer"
+                                  >
+                                    🌅 Warm Studio
+                                  </button>
+                                  <button
+                                    onClick={() => { setVideoFilter('cinema'); setShowFilterPicker(false); }}
+                                    className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded text-[10px] font-bold text-left cursor-pointer"
+                                  >
+                                    🎬 Cinema B&W
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Chụp ảnh kỉ niệm */}
+                            <button
+                              onClick={takeCallSnapshot}
+                              title="Chụp ảnh kỷ niệm buổi học HD"
+                              className="p-2.5 rounded-xl bg-slate-800 text-emerald-400 hover:bg-slate-700 text-xs font-bold transition-all cursor-pointer"
+                            >
+                              <Camera className="h-4 w-4" />
+                            </button>
                           </div>
 
-                          <button
-                            onClick={endCall}
-                            title="Kết thúc cuộc gọi"
-                            className="px-3 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-black flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
-                          >
-                            <PhoneOff className="h-4 w-4" /> TẮT CALL
-                          </button>
+                          <div className="flex items-center gap-2">
+                            {/* Phóng to / Thu nhỏ Khung Video */}
+                            <button
+                              onClick={() => setVideoFrameSize(videoFrameSize === 'large' ? 'normal' : 'large')}
+                              title={videoFrameSize === 'large' ? 'Thu nhỏ khung' : 'Mở rộng khung khổng lồ'}
+                              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded-xl text-xs font-black flex items-center gap-1 transition-all cursor-pointer border border-cyan-800/60"
+                            >
+                              {videoFrameSize === 'large' ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                              <span className="hidden sm:inline">{videoFrameSize === 'large' ? 'Thu nhỏ' : 'Khung bự'}</span>
+                            </button>
+
+                            {/* Tắt Cuộc gọi */}
+                            <button
+                              onClick={endCall}
+                              title="Kết thúc cuộc gọi"
+                              className="px-3.5 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-black flex items-center gap-1.5 shadow-lg transition-all cursor-pointer"
+                            >
+                              <PhoneOff className="h-4 w-4" /> TẮT CALL
+                            </button>
+                          </div>
                         </div>
 
                         {/* 4. KHUNG CHAT TRỰC TIẾP TRONG CALL (IN-CALL LIVE TEXT CHAT) */}

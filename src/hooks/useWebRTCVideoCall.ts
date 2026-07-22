@@ -38,6 +38,8 @@ export function useWebRTCVideoCall(lobbyId: string | null, userId: string | null
     usernameRef.current = username;
   }, [lobbyId, userId, username]);
 
+  const [latestSignal, setLatestSignal] = useState<{ senderId: string; senderName: string; type: string; payload?: any } | null>(null);
+
   // STUN & TURN Servers chuẩn Google, Twilio & Cloudflare
   const iceServers: RTCConfiguration = {
     iceServers: [
@@ -53,9 +55,9 @@ export function useWebRTCVideoCall(lobbyId: string | null, userId: string | null
 
   // 1. Gửi tín hiệu WebRTC đến server signaling
   const sendSignal = useCallback(async (
-    type: 'join-call' | 'offer' | 'answer' | 'candidate' | 'leave',
+    type: 'join-call' | 'offer' | 'answer' | 'candidate' | 'leave' | 'reaction' | 'raise-hand' | 'sound-effect',
     targetId: string = 'all',
-    payload?: { sdp?: RTCSessionDescriptionInit; candidate?: RTCIceCandidateInit }
+    payload?: any
   ) => {
     const currentLobbyId = lobbyIdRef.current;
     const currentUserId = userIdRef.current;
@@ -71,7 +73,7 @@ export function useWebRTCVideoCall(lobbyId: string | null, userId: string | null
           senderName: usernameRef.current || 'Phi hành gia',
           targetId,
           type,
-          sdp: payload?.sdp || null,
+          sdp: payload?.sdp || (payload?.emoji || payload?.soundId || payload?.isHandRaised ? payload : null),
           candidate: payload?.candidate || null
         })
       });
@@ -227,6 +229,13 @@ export function useWebRTCVideoCall(lobbyId: string | null, userId: string | null
         const copy = { ...prev };
         delete copy[senderId];
         return copy;
+      });
+    } else if (type === 'reaction' || type === 'raise-hand' || type === 'sound-effect') {
+      setLatestSignal({
+        senderId,
+        senderName: sig.senderName || 'Bạn học',
+        type,
+        payload: sig.sdp || sig.candidate || sig.payload
       });
     }
   }, [createPeerConnection, sendSignal]);
@@ -397,6 +406,8 @@ export function useWebRTCVideoCall(lobbyId: string | null, userId: string | null
     isVideoOff,
     isScreenSharing,
     callError,
+    latestSignal,
+    sendSignal,
     startCall,
     endCall,
     toggleMute,
