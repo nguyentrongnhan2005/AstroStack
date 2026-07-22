@@ -1875,7 +1875,7 @@ Thứ 5, Tiết 7-9 (Thực hành), Phòng PM.302`}</pre>
                     disabled={!textInput || pasteLoading}
                     className="flex-shrink-0 px-3 py-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-slate-400 hover:text-slate-200 rounded-lg text-[10px] font-bold transition-colors border border-slate-700"
                   >
-                    XÓA
+                    XÓA CHỮ
                   </button>
                   <button
                     onClick={handleTextImport}
@@ -2475,25 +2475,6 @@ Thứ 5, Tiết 7-9 (Thực hành), Phòng PM.302`}</pre>
 
         {/* THỐNG KÊ (BOTTOM SIDEBAR) */}
         <div className="p-4 border-t border-slate-800 bg-slate-950/80 space-y-4">
-          {/* Xóa Dữ Liệu */}
-          <div className="space-y-2">
-            <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-              💾 Xóa Dữ Liệu
-            </h3>
-            <p className="text-[11px] text-slate-400 leading-relaxed">
-              Khi dọn dẹp hoặc chuyển đổi sang học kỳ mới, bạn có thể xóa toàn bộ dữ liệu hiện có trong kho bài và bàn cờ để bắt đầu lại.
-            </p>
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="w-full py-2 bg-red-950/40 hover:bg-red-900/60 border border-red-900/40 text-red-400 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer"
-            >
-              <Trash2 className="h-4 w-4" />
-              XÓA TẤT CẢ DỮ LIỆU KHO BÀI
-            </button>
-          </div>
-
-          <hr className="border-slate-800/80" />
-
           <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">📊 THỐNG KÊ TKB</h4>
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div className="bg-slate-900/50 p-2 rounded-lg border border-slate-900">
