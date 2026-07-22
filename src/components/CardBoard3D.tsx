@@ -30,14 +30,63 @@ const EMISSIVE_MAP: { [key: string]: string } = {
   gray: '#374151',
 };
 
-const BG_COLOR_MAP: { [key: string]: string } = {
-  blue: 'bg-blue-950/40 border-blue-500/50 text-blue-300 hover:bg-blue-900/40',
-  emerald: 'bg-emerald-950/40 border-emerald-500/50 text-emerald-300 hover:bg-emerald-900/40',
-  amber: 'bg-amber-950/40 border-amber-500/50 text-amber-300 hover:bg-amber-900/40',
-  rose: 'bg-rose-950/40 border-rose-500/50 text-rose-300 hover:bg-rose-900/40',
-  violet: 'bg-violet-950/40 border-violet-500/50 text-violet-300 hover:bg-violet-900/40',
-  indigo: 'bg-indigo-950/40 border-indigo-500/50 text-indigo-300 hover:bg-indigo-900/40',
-  cyan: 'bg-cyan-950/40 border-cyan-500/50 text-cyan-300 hover:bg-cyan-900/40',
+const BG_COLOR_MAP: { [key: string]: { bg: string; border: string; text: string; glow: string; badge: string } } = {
+  blue: {
+    bg: 'bg-gradient-to-br from-blue-900/95 via-blue-950 to-slate-950',
+    border: 'border-2 border-blue-400',
+    text: 'text-blue-100',
+    glow: 'shadow-[0_0_18px_rgba(59,130,246,0.5)] hover:shadow-[0_0_28px_rgba(59,130,246,0.8)] hover:border-blue-300',
+    badge: 'bg-blue-500/30 text-blue-200 border border-blue-400/80',
+  },
+  emerald: {
+    bg: 'bg-gradient-to-br from-emerald-900/95 via-emerald-950 to-slate-950',
+    border: 'border-2 border-emerald-400',
+    text: 'text-emerald-100',
+    glow: 'shadow-[0_0_18px_rgba(16,185,129,0.5)] hover:shadow-[0_0_28px_rgba(16,185,129,0.8)] hover:border-emerald-300',
+    badge: 'bg-emerald-500/30 text-emerald-200 border border-emerald-400/80',
+  },
+  amber: {
+    bg: 'bg-gradient-to-br from-amber-900/95 via-amber-950 to-slate-950',
+    border: 'border-2 border-amber-400',
+    text: 'text-amber-100',
+    glow: 'shadow-[0_0_18px_rgba(245,158,11,0.5)] hover:shadow-[0_0_28px_rgba(245,158,11,0.8)] hover:border-amber-300',
+    badge: 'bg-amber-500/30 text-amber-200 border border-amber-400/80',
+  },
+  rose: {
+    bg: 'bg-gradient-to-br from-rose-900/95 via-rose-950 to-slate-950',
+    border: 'border-2 border-rose-400',
+    text: 'text-rose-100',
+    glow: 'shadow-[0_0_18px_rgba(244,63,94,0.5)] hover:shadow-[0_0_28px_rgba(244,63,94,0.8)] hover:border-rose-300',
+    badge: 'bg-rose-500/30 text-rose-200 border border-rose-400/80',
+  },
+  violet: {
+    bg: 'bg-gradient-to-br from-violet-900/95 via-violet-950 to-slate-950',
+    border: 'border-2 border-violet-400',
+    text: 'text-violet-100',
+    glow: 'shadow-[0_0_18px_rgba(139,92,246,0.5)] hover:shadow-[0_0_28px_rgba(139,92,246,0.8)] hover:border-violet-300',
+    badge: 'bg-violet-500/30 text-violet-200 border border-violet-400/80',
+  },
+  indigo: {
+    bg: 'bg-gradient-to-br from-indigo-900/95 via-indigo-950 to-slate-950',
+    border: 'border-2 border-indigo-400',
+    text: 'text-indigo-100',
+    glow: 'shadow-[0_0_18px_rgba(99,102,241,0.5)] hover:shadow-[0_0_28px_rgba(99,102,241,0.8)] hover:border-indigo-300',
+    badge: 'bg-indigo-500/30 text-indigo-200 border border-indigo-400/80',
+  },
+  cyan: {
+    bg: 'bg-gradient-to-br from-cyan-900/95 via-cyan-950 to-slate-950',
+    border: 'border-2 border-cyan-400',
+    text: 'text-cyan-100',
+    glow: 'shadow-[0_0_18px_rgba(6,182,212,0.5)] hover:shadow-[0_0_28px_rgba(6,182,212,0.8)] hover:border-cyan-300',
+    badge: 'bg-cyan-500/30 text-cyan-200 border border-cyan-400/80',
+  },
+  gray: {
+    bg: 'bg-gradient-to-br from-slate-800/95 via-slate-900 to-slate-950',
+    border: 'border-2 border-slate-400',
+    text: 'text-slate-100',
+    glow: 'shadow-[0_0_18px_rgba(148,163,184,0.5)] hover:shadow-[0_0_28px_rgba(148,163,184,0.8)] hover:border-slate-300',
+    badge: 'bg-slate-700/40 text-slate-200 border border-slate-400/80',
+  }
 };
 
 // ----------------------------------------------------
@@ -2130,13 +2179,13 @@ export const CardBoard3D: React.FC<CardBoard3DProps> = ({
                 });
               })}
 
-              {/* Render các thẻ môn học đặt đè lên Grid */}
+              {/* Render các thẻ môn học đặt đè lên Grid với màu sắc neon siêu đậm nét */}
               {placedSessions2D.map(({ card, session, hasConflict, isLocked }) => {
                 const startRow = session.startPeriod;
                 const endRow = session.endPeriod + 1; // grid-row kết thúc là độc quyền
                 const colIdx = session.dayOfWeek - 2 + 2; // Cột 1 là RowHeader, cột 2 là Thứ 2
                 
-                const bgStyles = BG_COLOR_MAP[card.colorRamp] || BG_COLOR_MAP.blue;
+                const styles = BG_COLOR_MAP[card.colorRamp] || BG_COLOR_MAP.blue;
 
                 return (
                   <div
@@ -2146,25 +2195,25 @@ export const CardBoard3D: React.FC<CardBoard3DProps> = ({
                       gridColumn: colIdx, 
                       gridRow: `${startRow} / ${endRow}` 
                     }}
-                    className={`m-1 p-2 rounded-lg border text-left cursor-pointer transition-all flex flex-col justify-between overflow-hidden shadow-lg select-none ${bgStyles} ${
-                      hasConflict ? 'border-red-500/80 bg-red-950/40 text-red-300 shake-effect' : ''
+                    className={`m-1 p-2.5 rounded-xl text-left cursor-pointer transition-all duration-200 flex flex-col justify-between overflow-hidden select-none hover:scale-[1.02] ${styles.bg} ${styles.border} ${styles.glow} ${
+                      hasConflict ? 'border-2 border-red-500 bg-red-950 text-red-200 shadow-[0_0_22px_rgba(239,68,68,0.8)] shake-effect' : ''
                     }`}
                   >
                     <div>
                       <div className="flex justify-between items-start gap-1">
-                        <span className="font-black text-[9px] uppercase tracking-wider bg-slate-950/80 px-1 rounded">
+                        <span className={`font-black text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-md shadow-sm ${styles.badge}`}>
                           {card.subjectCode}
                         </span>
-                        {isLocked && <span className="text-[10px]">🔒</span>}
+                        {isLocked && <span className="text-[11px] drop-shadow">🔒</span>}
                       </div>
-                      <h4 className="font-bold text-[10px] mt-1 leading-tight line-clamp-2">
+                      <h4 className="font-extrabold text-[11px] mt-1.5 leading-snug line-clamp-2 drop-shadow-sm text-white">
                         {card.subjectName}
                       </h4>
                     </div>
                     
-                    <div className="mt-1 flex justify-between items-center text-[9px] opacity-90">
-                      <span className="truncate">🏢 {session.room || 'TBA'}</span>
-                      <span className="font-black shrink-0 px-1 bg-slate-950/40 rounded">
+                    <div className={`mt-1.5 flex justify-between items-center text-[10px] font-bold ${styles.text}`}>
+                      <span className="truncate flex items-center gap-1 opacity-95">🏢 {session.room || 'TBA'}</span>
+                      <span className={`font-black shrink-0 px-1.5 py-0.5 rounded-md shadow-sm ${styles.badge}`}>
                         {session.sessionType === 'lab' ? 'TH' : 'LT'}
                       </span>
                     </div>
