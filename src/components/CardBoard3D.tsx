@@ -949,20 +949,157 @@ const Sun: React.FC = () => {
   );
 };
 
+// ---- Phi thuyền / Vệ tinh 3D Sci-Fi Sang Trọng (Sci-Fi Futuristic Satellite / Spaceship) ----
+const SpaceshipModel: React.FC<{ color: string; emissiveColor: string; size: number; name?: string }> = ({
+  color,
+  emissiveColor,
+  size,
+  name,
+}) => {
+  return (
+    <group>
+      {/* 1. THÂN CHÍNH KHÍ ĐỘNG HỌC (STREAMLINED METALLIC FUSELAGE) */}
+      <mesh rotation={[Math.PI / 2, 0, 0]} castShadow receiveShadow>
+        <coneGeometry args={[size * 0.45, size * 2.2, 16]} />
+        <meshPhysicalMaterial
+          color={color}
+          emissive={emissiveColor}
+          emissiveIntensity={0.6}
+          roughness={0.15}
+          metalness={0.85}
+          clearcoat={1.0}
+          clearcoatRoughness={0.05}
+        />
+        <Edges color="#ffffff" threshold={20} lineWidth={1.5} />
+      </mesh>
+
+      {/* 2. KHOANG LÁI / ĐĨA VỆ TINH PHÁT SÁNG HOLOGRAM (COCKPIT DOME & SATELLITE DISH) */}
+      <mesh position={[0, size * 0.18, size * 0.2]}>
+        <sphereGeometry args={[size * 0.32, 24, 24]} />
+        <meshPhysicalMaterial
+          color="#38bdf8"
+          emissive={emissiveColor}
+          emissiveIntensity={1.8}
+          roughness={0.05}
+          metalness={0.9}
+          transmission={0.4}
+          transparent
+          opacity={0.9}
+        />
+      </mesh>
+
+      {/* Đĩa Ăng-ten Vệ tinh quay (Satellite Dish) */}
+      <mesh position={[0, size * 0.45, -size * 0.1]} rotation={[-0.4, 0, 0]}>
+        <cylinderGeometry args={[size * 0.32, size * 0.05, size * 0.06, 16]} />
+        <meshStandardMaterial color="#cbd5e1" metalness={0.9} roughness={0.2} />
+        <Edges color="#38bdf8" lineWidth={2} />
+      </mesh>
+
+      {/* 3. HAI CÁNH PIN MẶT TRỜI NEON (DUAL NEON SOLAR ARRAY WINGS) */}
+      {/* Cánh Trái */}
+      <group position={[-size * 0.95, 0, -size * 0.2]} rotation={[0, 0.15, 0]}>
+        <mesh castShadow>
+          <boxGeometry args={[size * 1.3, size * 0.04, size * 0.5]} />
+          <meshStandardMaterial
+            color="#1e3a8a"
+            emissive="#1d4ed8"
+            emissiveIntensity={0.8}
+            roughness={0.2}
+            metalness={0.6}
+          />
+          <Edges color="#60a5fa" lineWidth={2.5} />
+        </mesh>
+        {/* Đèn tín hiệu cánh trái (Red Navigation Light) */}
+        <mesh position={[-size * 0.65, 0, 0]}>
+          <sphereGeometry args={[size * 0.06, 8, 8]} />
+          <meshBasicMaterial color="#ef4444" />
+        </mesh>
+      </group>
+
+      {/* Cánh Phải */}
+      <group position={[size * 0.95, 0, -size * 0.2]} rotation={[0, -0.15, 0]}>
+        <mesh castShadow>
+          <boxGeometry args={[size * 1.3, size * 0.04, size * 0.5]} />
+          <meshStandardMaterial
+            color="#1e3a8a"
+            emissive="#1d4ed8"
+            emissiveIntensity={0.8}
+            roughness={0.2}
+            metalness={0.6}
+          />
+          <Edges color="#60a5fa" lineWidth={2.5} />
+        </mesh>
+        {/* Đèn tín hiệu cánh phải (Green Navigation Light) */}
+        <mesh position={[size * 0.65, 0, 0]}>
+          <sphereGeometry args={[size * 0.06, 8, 8]} />
+          <meshBasicMaterial color="#10b981" />
+        </mesh>
+      </group>
+
+      {/* 4. HAI ĐỘNG CƠ PHẢN LỰC ION HAI BÊN (DUAL SIDE ION THRUSTERS) */}
+      <mesh position={[-size * 0.38, 0, -size * 0.5]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[size * 0.14, size * 0.16, size * 0.7, 16]} />
+        <meshStandardMaterial color="#334155" metalness={0.9} roughness={0.3} />
+        <Edges color="#38bdf8" lineWidth={1.5} />
+      </mesh>
+      <mesh position={[size * 0.38, 0, -size * 0.5]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[size * 0.14, size * 0.16, size * 0.7, 16]} />
+        <meshStandardMaterial color="#334155" metalness={0.9} roughness={0.3} />
+        <Edges color="#38bdf8" lineWidth={1.5} />
+      </mesh>
+
+      {/* 5. ĐUÔI LỬA PLASMA 2 LỚP (DUAL-STAGE PLASMA FLAME) */}
+      <mesh position={[0, 0, -size * 1.3]} rotation={[Math.PI / 2, 0, 0]}>
+        <coneGeometry args={[size * 0.28, size * 1.5, 16]} />
+        <meshBasicMaterial
+          color="#00f0ff"
+          transparent
+          opacity={0.85}
+          blending={THREE.AdditiveBlending}
+        />
+      </mesh>
+      <mesh position={[0, 0, -size * 1.1]} rotation={[Math.PI / 2, 0, 0]}>
+        <coneGeometry args={[size * 0.14, size * 0.9, 16]} />
+        <meshBasicMaterial
+          color="#ffffff"
+          transparent
+          opacity={0.95}
+          blending={THREE.AdditiveBlending}
+        />
+      </mesh>
+
+      {/* THẺ TÊN TÀU CO-OP HOẶC PHI HÀNH GIA */}
+      {name && (
+        <Text
+          position={[0, size * 0.7, 0]}
+          fontSize={0.22}
+          color="#ffffff"
+          outlineWidth={0.015}
+          outlineColor="#000000"
+          anchorX="center"
+          anchorY="bottom"
+        >
+          {`🛸 ${name}`}
+        </Text>
+      )}
+    </group>
+  );
+};
+
 // ---- Phi thuyền 3D (Spaceship) đại diện cho tiến trình của người dùng ----
 const Spaceship: React.FC<{ level: number }> = ({ level }) => {
   const shipRef = useRef<THREE.Group>(null);
-  const speed = 0.25 + level * 0.04; // Cấp độ càng cao bay càng nhanh
-  const size = 0.24 + level * 0.024; // Cấp độ càng cao tàu càng to
+  const speed = 0.28 + level * 0.04; // Cấp độ càng cao bay càng nhanh
+  const size = 0.42 + level * 0.035; // Kích thước phi thuyền to hơn rõ ràng, nổi bật
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
     if (shipRef.current) {
-      // Bay theo quỹ đạo tròn lệch elip quanh bảng TKB ở khoảng cách vừa phải (bán kính x=7.5, z=6.5)
+      // Bay theo quỹ đạo tròn lệch elip quanh bảng TKB ở khoảng cách vừa phải
       const angle = t * speed * 0.25;
-      shipRef.current.position.x = Math.cos(angle) * 8.2;
-      shipRef.current.position.z = Math.sin(angle) * 7.2;
-      shipRef.current.position.y = 1.8 + Math.sin(t * 2.0) * 0.22; // Độ phập phồng nhẹ
+      shipRef.current.position.x = Math.cos(angle) * 8.5;
+      shipRef.current.position.z = Math.sin(angle) * 7.5;
+      shipRef.current.position.y = 2.0 + Math.sin(t * 2.0) * 0.25; // Độ phập phồng nhẹ
 
       // Xoay đầu phi thuyền hướng về phía trước theo chiều bay
       shipRef.current.rotation.y = -angle + Math.PI / 2;
@@ -971,30 +1108,12 @@ const Spaceship: React.FC<{ level: number }> = ({ level }) => {
   });
 
   // Chọn màu phi thuyền theo cấp độ
-  const shipColor = level >= 5 ? '#f43f5e' : (level >= 3 ? '#a855f7' : '#06b6d4');
+  const shipColor = level >= 5 ? '#f43f5e' : (level >= 3 ? '#a855f7' : '#0284c7');
+  const emissiveColor = level >= 5 ? '#e11d48' : (level >= 3 ? '#9333ea' : '#0369a1');
 
   return (
     <group ref={shipRef}>
-      {/* Thân phi thuyền chính - Hình chóp nhọn hướng bay */}
-      <mesh rotation={[Math.PI / 2, 0, 0]}>
-        <coneGeometry args={[size * 0.5, size * 1.8, 4]} />
-        <meshStandardMaterial color={shipColor} roughness={0.2} metalness={0.7} />
-      </mesh>
-      {/* Cánh trái */}
-      <mesh position={[-size * 0.48, -size * 0.2, -size * 0.15]} rotation={[0, 0.25, 0]}>
-        <boxGeometry args={[size * 0.5, size * 0.08, size * 0.35]} />
-        <meshStandardMaterial color="#ffffff" roughness={0.3} />
-      </mesh>
-      {/* Cánh phải */}
-      <mesh position={[size * 0.48, -size * 0.2, -size * 0.15]} rotation={[0, -0.25, 0]}>
-        <boxGeometry args={[size * 0.5, size * 0.08, size * 0.35]} />
-        <meshStandardMaterial color="#ffffff" roughness={0.3} />
-      </mesh>
-      {/* Đuôi lửa phản lực phát sáng */}
-      <mesh position={[0, -size * 1.0, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <coneGeometry args={[size * 0.2, size * 0.5, 8]} />
-        <meshBasicMaterial color="#ff7700" transparent opacity={0.8} blending={THREE.AdditiveBlending} />
-      </mesh>
+      <SpaceshipModel color={shipColor} emissiveColor={emissiveColor} size={size} />
     </group>
   );
 };
@@ -1002,11 +1121,11 @@ const Spaceship: React.FC<{ level: number }> = ({ level }) => {
 // ---- Phi thuyền 3D Co-Op đại diện cho các bạn cùng phòng ----
 const CoopSpaceship: React.FC<{ color: string; index: number; name: string }> = ({ color, index, name }) => {
   const shipRef = useRef<THREE.Group>(null);
-  const speed = 0.20 + index * 0.03;
-  const radiusX = 8.4 + index * 0.4;
-  const radiusZ = 7.4 + index * 0.4;
-  const heightOffset = 1.9 + index * 0.2;
-  const size = 0.22;
+  const speed = 0.22 + index * 0.03;
+  const radiusX = 8.8 + index * 0.5;
+  const radiusZ = 7.8 + index * 0.5;
+  const heightOffset = 2.2 + index * 0.3;
+  const size = 0.38;
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
@@ -1014,7 +1133,7 @@ const CoopSpaceship: React.FC<{ color: string; index: number; name: string }> = 
       const angle = t * speed * 0.25 + index * (Math.PI / 3);
       shipRef.current.position.x = Math.cos(angle) * radiusX;
       shipRef.current.position.z = Math.sin(angle) * radiusZ;
-      shipRef.current.position.y = heightOffset + Math.sin(t * 1.5 + index) * 0.15;
+      shipRef.current.position.y = heightOffset + Math.sin(t * 1.5 + index) * 0.18;
 
       shipRef.current.rotation.y = -angle + Math.PI / 2;
       shipRef.current.rotation.z = Math.sin(t * 2.0 + index) * 0.05;
@@ -1023,31 +1142,7 @@ const CoopSpaceship: React.FC<{ color: string; index: number; name: string }> = 
 
   return (
     <group ref={shipRef}>
-      <mesh rotation={[Math.PI / 2, 0, 0]}>
-        <coneGeometry args={[size * 0.5, size * 1.8, 4]} />
-        <meshStandardMaterial color={color} roughness={0.2} metalness={0.7} />
-      </mesh>
-      <mesh position={[-size * 0.48, -size * 0.2, -size * 0.15]} rotation={[0, 0.25, 0]}>
-        <boxGeometry args={[size * 0.5, size * 0.08, size * 0.35]} />
-        <meshStandardMaterial color="#ffffff" roughness={0.3} />
-      </mesh>
-      <mesh position={[size * 0.48, -size * 0.2, -size * 0.15]} rotation={[0, -0.25, 0]}>
-        <boxGeometry args={[size * 0.5, size * 0.08, size * 0.35]} />
-        <meshStandardMaterial color="#ffffff" roughness={0.3} />
-      </mesh>
-      <mesh position={[0, -size * 1.0, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <coneGeometry args={[size * 0.2, size * 0.5, 8]} />
-        <meshBasicMaterial color="#00ffcc" transparent opacity={0.8} blending={THREE.AdditiveBlending} />
-      </mesh>
-      <Text
-        position={[0, 0.4, 0]}
-        fontSize={0.15}
-        color={color}
-        anchorX="center"
-        anchorY="middle"
-      >
-        {name}
-      </Text>
+      <SpaceshipModel color={color} emissiveColor={color} size={size} name={name} />
     </group>
   );
 };
