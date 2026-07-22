@@ -6,6 +6,7 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { Stars, Billboard } from '@react-three/drei';
 import * as THREE from 'three';
 import { loadFaceApiModels, faceapi } from '@/lib/faceapi';
+import { useScheduleStore } from '@/store/useScheduleStore';
 
 // ---- Nền 3D: Mặt trời tỏa sáng rực rỡ trong không gian ----
 const Sun: React.FC = () => {
@@ -215,7 +216,8 @@ export default function LoginClient() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const detectIntervalRef = useRef<any>(null);
+  const detectIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isScanningRef = useRef<boolean>(false);
 
   // 1. Tải các model AI của Face-API khi vào trang
   useEffect(() => {
@@ -295,12 +297,12 @@ export default function LoginClient() {
     setWebcamActive(false);
   };
 
-  // 3. Vòng lặp quét khuôn mặt thời gian thực và vẽ 68 điểm landmarks
+  // 3. Vòng lặp quét khuôn mặt thời gian thực và vẽ 68 điểm landmarks (Khóa async tránh lag di động)
   const startFaceDetection = () => {
     if (detectIntervalRef.current) clearInterval(detectIntervalRef.current);
 
     detectIntervalRef.current = setInterval(async () => {
-      if (!videoRef.current || !canvasRef.current || !isAiLoaded) return;
+      if (!videoRef.current || !canvasRef.current || !isAiLoaded || isScanningRef.current) return;
 
       const video = videoRef.current;
       const canvas = canvasRef.current;
@@ -315,51 +317,75 @@ export default function LoginClient() {
         canvas.height = displaySize.height;
       }
 
-      // Phát hiện khuôn mặt kèm landmarks và descriptor
-      const detection = await faceapi
-        .detectSingleFace(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
-        .withFaceLandmarks()
-        .withFaceDescriptor();
+      isScanningRef.current = true;
 
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      try {
+        // Phát hiện khuôn mặt kèm landmarks và descriptor với minConfidence tối ưu
+        const detection = await faceapi
+          .detectSingleFace(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.45 }))
+          .withFaceLandmarks()
+          .withFaceDescriptor();
 
-      if (detection) {
-        // Tùy chỉnh vẽ các điểm landmarks màu hologram phát sáng
-        const landmarks = detection.landmarks;
-        const points = landmarks.positions;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Vẽ 68 điểm mốc màu xanh neon
-        ctx.fillStyle = '#06b6d4'; // Cyan neon
-        for (const pt of points) {
-          ctx.beginPath();
-          ctx.arc(pt.x, pt.y, 2.5, 0, Math.PI * 2);
-          ctx.fill();
+          if (detection) {
+            const landmarks = detection.landmarks;
+            const points = landmarks.positions;
+
+            // Vẽ 68 điểm mốc màu xanh neon
+            ctx.fillStyle = '#06b6d4';
+            for (const pt of points) {
+              ctx.beginPath();
+              ctx.arc(pt.x, pt.y, 2, 0, Math.PI * 2);
+              ctx.fill();
+            }
+
+            // Vẽ đường nối mắt, chân mày, cằm
+            ctx.strokeStyle = 'rgba(6, 182, 212, 0.3)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            for (let i = 1; i <= 16; i++) ctx.lineTo(points[i].x, points[i].y);
+            ctx.stroke();
+
+            // Lưu trữ descriptor tạm thời vào cửa sổ window để gọi khi bấm nút quét
+            (window as any).currentFaceDescriptor = Array.from(detection.descriptor);
+          } else {
+            (window as any).currentFaceDescriptor = null;
+          }
         }
-
-        // Vẽ đường nối mắt, chân mày, cằm
-        ctx.strokeStyle = 'rgba(6, 182, 212, 0.3)';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        // Cằm (0-16)
-        ctx.moveTo(points[0].x, points[0].y);
-        for (let i = 1; i <= 16; i++) ctx.lineTo(points[i].x, points[i].y);
-        ctx.stroke();
-
-        // Lưu trữ descriptor tạm thời vào cửa sổ window để gọi khi bấm nút quét
-        (window as any).currentFaceDescriptor = Array.from(detection.descriptor);
-      } else {
-        (window as any).currentFaceDescriptor = null;
+      } catch (err) {
+        console.error('Face detection loop error:', err);
+      } finally {
+        isScanningRef.current = false;
       }
-    }, 150);
+    }, 450);
   };
 
   // 4. Xử lý quét nhận diện để ĐĂNG NHẬP bằng khuôn mặt
   const handleFaceLogin = async () => {
-    const descriptor = (window as any).currentFaceDescriptor;
+    let descriptor = (window as any).currentFaceDescriptor;
+    
+    // Nếu chưa có sẵn từ loop, thử chụp 1-shot detection ngay tức thì
+    if (!descriptor && videoRef.current && isAiLoaded) {
+      try {
+        setStatusMessage('Đang quét khuôn mặt...');
+        const detection = await faceapi
+          .detectSingleFace(videoRef.current, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.4 }))
+          .withFaceLandmarks()
+          .withFaceDescriptor();
+        if (detection) {
+          descriptor = Array.from(detection.descriptor);
+        }
+      } catch (e) {
+        console.error('Instant face detection failed:', e);
+      }
+    }
+
     if (!descriptor) {
-      setErrorMessage('Vui lòng đứng thẳng trước camera để AI phát hiện khuôn mặt.');
+      setErrorMessage('Vui lòng nhìn thẳng vào camera để AI phát hiện khuôn mặt.');
       return;
     }
 
@@ -374,7 +400,10 @@ export default function LoginClient() {
 
       const data = await res.json();
       if (res.ok) {
-        // Lưu thông tin đăng nhập và token
+        // Dọn sạch store cũ để tránh lẫn dữ liệu của user khác
+        useScheduleStore.getState().clearAllData();
+        localStorage.removeItem('cardtkb_has_been_used');
+        
         localStorage.setItem('cardtkb_token', data.token);
         localStorage.setItem('cardtkb_user_id', data.user.id);
         localStorage.setItem('cardtkb_email', data.user.email);
@@ -472,6 +501,10 @@ export default function LoginClient() {
 
       const data = await res.json();
       if (res.ok) {
+        // Dọn sạch store cũ khi tạo tài khoản mới
+        useScheduleStore.getState().clearAllData();
+        localStorage.removeItem('cardtkb_has_been_used');
+        
         localStorage.setItem('cardtkb_token', data.token);
         localStorage.setItem('cardtkb_user_id', data.user.id);
         localStorage.setItem('cardtkb_email', data.user.email);
@@ -513,6 +546,10 @@ export default function LoginClient() {
 
       const data = await res.json();
       if (res.ok) {
+        // Dọn sạch store cũ khi đăng nhập thủ công
+        useScheduleStore.getState().clearAllData();
+        localStorage.removeItem('cardtkb_has_been_used');
+        
         localStorage.setItem('cardtkb_token', data.token);
         localStorage.setItem('cardtkb_user_id', data.user.id);
         localStorage.setItem('cardtkb_email', data.user.email);

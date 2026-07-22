@@ -4,12 +4,21 @@ import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'cardtkb-super-secret-key-3d-space';
 
-// Hàm tính khoảng cách Euclidean giữa hai mảng vector số thực
+// Hàm chuẩn hóa vector L2
+function normalizeVector(v: number[]): number[] {
+  const norm = Math.sqrt(v.reduce((sum, val) => sum + val * val, 0));
+  if (norm === 0) return v;
+  return v.map((val) => val / norm);
+}
+
+// Hàm tính khoảng cách Euclidean chuẩn hóa giữa hai mảng vector
 function getEuclideanDistance(v1: number[], v2: number[]): number {
   if (v1.length !== v2.length) return Infinity;
+  const n1 = normalizeVector(v1);
+  const n2 = normalizeVector(v2);
   let sum = 0;
-  for (let i = 0; i < v1.length; i++) {
-    sum += Math.pow(v1[i] - v2[i], 2);
+  for (let i = 0; i < n1.length; i++) {
+    sum += Math.pow(n1[i] - n2[i], 2);
   }
   return Math.sqrt(sum);
 }
@@ -36,7 +45,7 @@ export async function POST(request: Request) {
 
     let bestMatchUser = null;
     let minDistance = Infinity;
-    const threshold = 0.52; // Ngưỡng nhận diện an toàn của face-api.js (khoảng cách càng nhỏ càng giống)
+    const threshold = 0.38; // Ngưỡng nhận diện an toàn tuyệt đối (nhỏ hơn 0.38 mới khớp cùng 1 người)
 
     for (const u of users) {
       if (!u.faceDescriptor) continue;
@@ -57,7 +66,7 @@ export async function POST(request: Request) {
     if (!bestMatchUser || minDistance > threshold) {
       console.warn(`Face login failed. Min distance: ${minDistance}`);
       return NextResponse.json({
-        error: 'Không nhận diện được khuôn mặt. Vui lòng thử lại hoặc đăng nhập thủ công.'
+        error: 'Khuôn mặt không khớp với bất kỳ tài khoản nào đã đăng ký. Vui lòng thử lại hoặc đăng nhập bằng email/mật khẩu.'
       }, { status: 400 });
     }
 

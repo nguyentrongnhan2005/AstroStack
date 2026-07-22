@@ -663,45 +663,26 @@ export default function Home() {
       return false;
     };
 
+    const handleLogout = () => {
+      clearAllData();
+      localStorage.removeItem('cardtkb_token');
+      localStorage.removeItem('cardtkb_user_id');
+      localStorage.removeItem('cardtkb_email');
+      localStorage.removeItem('cardtkb_semester_id');
+      localStorage.removeItem('cardtkb_has_been_used');
+      router.push('/login');
+    };
+
     // 3. Tiến hành khởi tạo dữ liệu
     const initData = async () => {
+      // Dọn sạch Zustand store trước khi nạp dữ liệu của user hiện tại
+      clearAllData();
+
       const loadedFromDB = await fetchScheduleFromDB(storedUserId);
       
-      const hasBeenUsed = localStorage.getItem('cardtkb_has_been_used') === 'true';
-      
-      // Nếu DB trống hoàn toàn và người dùng chưa từng dùng app (mới truy cập lần đầu)
-      if (!loadedFromDB && !hasBeenUsed) {
-        const initialCards = getInitialSampleCards();
-        setCourseCards(initialCards);
-        placeCard(initialCards[0].id);
-        placeCard(initialCards[1].id);
-        
-        localStorage.setItem('cardtkb_has_been_used', 'true');
-        
-        // Đồng bộ ngầm bản mẫu này lên DB để khởi tạo
-        try {
-          await fetch('/api/schedule', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              userId: storedUserId,
-              courseCards: initialCards,
-              versions: [
-                {
-                  id: `version-default-${Date.now()}`,
-                  semesterId: 'default-semester',
-                  label: 'Phương án A',
-                  placedCards: [
-                    { id: `placed-${initialCards[0].id}-${Date.now()}`, courseCardId: initialCards[0].id, locked: false },
-                    { id: `placed-${initialCards[1].id}-${Date.now()}`, courseCardId: initialCards[1].id, locked: false },
-                  ]
-                }
-              ]
-            })
-          });
-        } catch (e) {
-          console.error('Silent sync initial cards failed:', e);
-        }
+      // Nếu DB của user này chưa có dữ liệu (tài khoản mới), khởi tạo kho bài rỗng
+      if (!loadedFromDB) {
+        initStoreData([], []);
       }
     };
 
@@ -1344,10 +1325,12 @@ export default function Home() {
           </button>
           <button
             onClick={() => {
+              clearAllData();
               localStorage.removeItem('cardtkb_token');
               localStorage.removeItem('cardtkb_user_id');
               localStorage.removeItem('cardtkb_email');
               localStorage.removeItem('cardtkb_semester_id');
+              localStorage.removeItem('cardtkb_has_been_used');
               router.push('/login');
             }}
             title="Đăng xuất khỏi hệ thống"
@@ -1392,10 +1375,12 @@ export default function Home() {
               </button>
               <button
                 onClick={() => {
+                  clearAllData();
                   localStorage.removeItem('cardtkb_token');
                   localStorage.removeItem('cardtkb_user_id');
                   localStorage.removeItem('cardtkb_email');
                   localStorage.removeItem('cardtkb_semester_id');
+                  localStorage.removeItem('cardtkb_has_been_used');
                   router.push('/login');
                 }}
                 title="Đăng xuất khỏi hệ thống"
