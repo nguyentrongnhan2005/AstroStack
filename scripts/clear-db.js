@@ -6,6 +6,21 @@ async function clearDatabase() {
   console.log('Bắt đầu xóa toàn bộ dữ liệu...');
 
   // Xóa theo thứ tự từ bảng con -> bảng cha để tránh lỗi foreign key
+  const deletedSignals = await prisma.coopSignal.deleteMany({});
+  console.log(`✓ CoopSignal: đã xóa ${deletedSignals.count} bản ghi`);
+
+  const deletedMembers = await prisma.lobbyMember.deleteMany({});
+  console.log(`✓ LobbyMember: đã xóa ${deletedMembers.count} bản ghi`);
+
+  const deletedLobbies = await prisma.coopLobby.deleteMany({});
+  console.log(`✓ CoopLobby: đã xóa ${deletedLobbies.count} bản ghi`);
+
+  const deletedMessages = await prisma.message.deleteMany({});
+  console.log(`✓ Message: đã xóa ${deletedMessages.count} bản ghi`);
+
+  const deletedFriendships = await prisma.friendship.deleteMany({});
+  console.log(`✓ Friendship: đã xóa ${deletedFriendships.count} bản ghi`);
+
   const deletedPlacedCards = await prisma.placedCard.deleteMany({});
   console.log(`✓ PlacedCard: đã xóa ${deletedPlacedCards.count} bản ghi`);
 
